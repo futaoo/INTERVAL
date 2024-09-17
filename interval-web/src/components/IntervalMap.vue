@@ -1,10 +1,11 @@
 <template>
+    <TreeInfoBox />
     <div class="map-container">
       <div id="map" class="leaflet-map"></div>
     </div>
   </template>
   
-<script setup language="ts">
+<script setup>
 import { ref, onMounted, shallowRef} from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css'
@@ -13,6 +14,8 @@ import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import 'leaflet-geosearch/dist/geosearch.css'; // Import the CSS for GeoSearch
 import { OpenStreetMapProvider, GeoSearchControl } from 'leaflet-geosearch'; // Import GeoSearch and OSM provider
 import 'esri-leaflet';
+import TreeInfoBox from './TreeInfoBox.vue';
+
 
 
 const map = shallowRef(null); // A ref for the Leaflet map
@@ -177,4 +180,5 @@ function styleFeature(feature) {
   width: 100%;
   height: 100%;
 }
+
 </style>
