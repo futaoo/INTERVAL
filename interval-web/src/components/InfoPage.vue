@@ -44,6 +44,7 @@ const toggleCollapse = () => {
   border-radius: 8.78px;
   background: rgba(105, 158, 250, 0.60);
   backdrop-filter: blur(0px); 
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Collapsed State */

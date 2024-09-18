@@ -2,13 +2,17 @@
   <!-- Tree Info Section -->
   <div v-if="!isCollapsed" class="info-content">
     <div class="map-desc">
-      <h1>{{desc.title}}</h1>
+      <h1><b>{{desc.title}}</b></h1>
       <p>{{desc.subtitle}}</p>
       <p>{{desc.intro}}</p>
     </div>
     <section class="info-section tree-statistics-section">
       <h1>Citywide Statistics</h1>
       <div class="table-details">
+        <div class="pie-chart-container">
+          <PieChart :chart-data="chartData"  />
+          <h2 >Tree Species Composition</h2>
+        </div>
         <table class="stats-summary-table">
           <tr>
             <th>Trees on Map:</th>
@@ -43,10 +47,6 @@
             <td>{{ treeStatistics.mostCommonSpecies }}</td>
           </tr>
         </table>
-        <div class="pie-chart-container">
-          <PieChart :chart-data="chartData"  />
-          <h2 >Tree Species Composition</h2>
-        </div>
       </div>
     </section>
 

@@ -48,10 +48,10 @@
         </div>
 
       </div>
-      
+
       <!-- Public or Private Filter -->
       <div class="filter-item">
-        <label>Ownership:</label>
+        <label style="font-weight: bold;">Ownership:</label> 
         <div>
           <input type="radio" id="public" value="Public" v-model="filters.ownership" />
           <label for="public">Public</label>
@@ -68,7 +68,7 @@
 
       <!-- Native or Non-native Filter -->
       <div class="filter-item">
-        <label>Origin:</label>
+        <label style="font-weight: bold;">Origin:</label>
         <div>
           <input type="radio" id="native" value="Native" v-model="filters.origin" />
           <label for="native">Native</label>
@@ -85,7 +85,7 @@
 
       <!-- Height Range Filter -->
       <div class="filter-item">
-        <label>Height Range (m):</label>
+        <label style="font-weight: bold;">Height Range (m):</label>
         <div class="range-inputs">
           <input type="number" v-model.number="filters.height.min" min="1" max="100" step="1" />
           <span>to</span>
@@ -95,7 +95,7 @@
 
       <!-- Trunk Range Filter -->
       <div class="filter-item">
-        <label>Trunk Range (m):</label>
+        <label style="font-weight: bold;">Trunk Range (m):</label>
         <div class="range-inputs">
           <input type="number" v-model.number="filters.diameter.min" min="1" max="100" step="1" />
           <span>to</span>
@@ -182,9 +182,13 @@ const applyFilters = () => {
   padding: 10px 15px;
   background-color: #4CAF50;
   color: white;
-  border: none;
-  cursor: pointer;
+  cursor: pointer;  
+  border: 2px solid #599a5d;
   border-radius: 5px;
+}
+
+.filter-btn:hover {
+  background-color: #45a049;
 }
 
 .filter-popup {
@@ -206,7 +210,6 @@ const applyFilters = () => {
 .search-input {
   width: 100%;
   padding: 8px;
-  margin-bottom: 10px;
   border-radius: 5px;
   border: 1px solid #ccc;
   font-size: 14px;
@@ -215,9 +218,7 @@ const applyFilters = () => {
 .dropdown {
   position: absolute;
   background-color: white;
-  width: 100%;
-  top: 0;
-  right: 100%;
+  width: 90%;
   border: 1px solid #ddd;
   border-radius: 5px;
   max-height: 100px;

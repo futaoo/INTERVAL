@@ -128,12 +128,12 @@ onMounted(() => {
   // Initialize the GeoSearch control
   const searchControl = new GeoSearchControl({
     provider: provider,
-    // position: 'topright',
+    position: 'bottomright',
     marker: {
       icon: markerIcon,
       draggable: false,
     },
-    style: 'bar', // You can also use 'button' for a smaller control
+    style: 'button', // You can also use 'button' for a smaller control
     autoComplete: true,
     autoCompleteDelay: 250,
     retainZoomLevel: false,
@@ -141,8 +141,6 @@ onMounted(() => {
     keepResult: true,
   });
 
-  // Add the search control to the map
-  map.value.addControl(searchControl);
 
   map.value.pm.addControls({  
     position: 'bottomright',  
@@ -154,6 +152,9 @@ onMounted(() => {
   new L.Control.Zoom({
       position: 'bottomright'
   }).addTo(map.value);
+
+  // Add the search control to the map
+  map.value.addControl(searchControl);
 
 });
 
