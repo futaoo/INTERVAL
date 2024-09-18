@@ -1,5 +1,6 @@
 <template>
-    <TreeInfoBox />
+    <InfoPage />
+    <TreeFilter />
     <div class="map-container">
       <div id="map" class="leaflet-map"></div>
     </div>
@@ -14,7 +15,8 @@ import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import 'leaflet-geosearch/dist/geosearch.css'; // Import the CSS for GeoSearch
 import { OpenStreetMapProvider, GeoSearchControl } from 'leaflet-geosearch'; // Import GeoSearch and OSM provider
 import 'esri-leaflet';
-import TreeInfoBox from './TreeInfoBox.vue';
+import InfoPage from './InfoPage.vue';
+import TreeFilter from './TreeFilter.vue';
 
 
 
@@ -126,12 +128,12 @@ onMounted(() => {
   // Initialize the GeoSearch control
   const searchControl = new GeoSearchControl({
     provider: provider,
-    position: 'topright',
+    // position: 'topright',
     marker: {
       icon: markerIcon,
       draggable: false,
     },
-    style: 'button', // You can also use 'button' for a smaller control
+    style: 'bar', // You can also use 'button' for a smaller control
     autoComplete: true,
     autoCompleteDelay: 250,
     retainZoomLevel: false,
