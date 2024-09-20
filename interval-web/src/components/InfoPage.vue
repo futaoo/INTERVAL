@@ -9,17 +9,24 @@
       <span v-else>&#9654;</span>
     </button>
     <!-- <TreeInfo :is-collapsed="isCollapsed" /> -->
-    <TreeStatistics :is-collapsed="isCollapsed" />
+    <TreeInfo :is-collapsed="isCollapsed" v-if="activePage.treePage" />
+    <TreeStatistics :is-collapsed="isCollapsed" v-if="activePage.statisticPage" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, toRefs} from 'vue';
 import TreeInfo from './TreeInfo.vue';
 import TreeStatistics from './TreeStatistics.vue';
 
 // Reactive state to track collapse
 const isCollapsed = ref(false);
+
+const props = defineProps ({
+  activePage: Object
+});
+
+const {activePage} = toRefs(props)
 
 // Function to toggle collapse state
 const toggleCollapse = () => {

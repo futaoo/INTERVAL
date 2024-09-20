@@ -1,13 +1,16 @@
 <template>
-    <InfoPage />
+    <InfoPage :active-page="activePage" />
     <TreeFilter />
     <div class="map-container">
       <div id="map" class="leaflet-map"></div>
     </div>
+    <button @click.prevent="submitGeo()" class="geo-btn">
+      Geo Submit
+    </button>
   </template>
   
 <script setup>
-import { ref, onMounted, shallowRef} from 'vue';
+import { ref, onMounted, shallowRef, toRef} from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css'
 import "@geoman-io/leaflet-geoman-free";
@@ -21,6 +24,12 @@ import TreeFilter from './TreeFilter.vue';
 
 
 const map = shallowRef(null); // A ref for the Leaflet map
+
+const activePage = ref({
+  treePage: false,
+  statisticPage: true
+})
+
 
 const markerIcon = L.icon({
     iconSize: [25, 41],
@@ -54,8 +63,6 @@ const treeGeoJSON = {
 
 let treeLayer = null;
 
-
-
 onMounted(() => {
   // Initialize the map with a specific center and zoom level
   map.value = L.map('map', {zoomControl: false, pmIgnore:false}).setView([53.349805, -6.26031], 13);
@@ -77,22 +84,13 @@ onMounted(() => {
     onEachFeature: (feature, layer) => {
       // Add popup to each feature
       layer.bindPopup(`<b>Tree ID:</b> ${feature.properties.id}<br/><b>Species:</b> ${feature.properties.speciesCommonName}<br/><b>Trunk Diameter:</b> ${feature.properties.trunkDiameter} cm`);
-    }
-  });
 
-  // Function to toggle tree visibility based on zoom level
-  const toggleGeoJsonVisibility = () => {
-    const currentZoom = map.value.getZoom();
-    if (currentZoom >= 15) {
-      if (!map.value.hasLayer(treeLayer)) {
-        treeLayer.addTo(map.value);  // Add the layer if zoom level is 17 or higher
-      }
-    } else {
-      if (map.value.hasLayer(treeLayer)) {
-        map.value.removeLayer(treeLayer);  // Remove the layer if zoom level is less than 17
-      }
-    }
-  };
+       // Add a click event listener to the layer
+      layer.on('click', () => {
+        showTreePage(activePage)
+      });  
+    } 
+  });
 
   // Listen for the zoomend event to toggle visibility of the GeoJSON layer
   map.value.on('zoomend', function () {
@@ -107,20 +105,6 @@ onMounted(() => {
       }
     }
   });
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
 
   // Initialize the OpenStreetMap provider for GeoSearch
   const provider = new OpenStreetMapProvider();
@@ -158,6 +142,17 @@ onMounted(() => {
 
 });
 
+
+const submitGeo = () => {
+    console.log(map.value.pm.getGeomanDrawLayers()[0].pm._shape);
+}
+
+function showTreePage(activePage) {
+  activePage.value.treePage = true;
+  activePage.value.statisticPage = false;
+}
+
+
 // Function to style the GeoJSON points based on tree trunk diameter
 function styleFeature(feature) {
   return {
@@ -182,6 +177,13 @@ function styleFeature(feature) {
 .leaflet-map {
   width: 100%;
   height: 100%;
+}
+
+.geo-btn {
+  position: absolute;
+  top: 200px;
+  right: 10px;
+  z-index: 10000;
 }
 
 </style>
