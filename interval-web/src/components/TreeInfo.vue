@@ -1,6 +1,7 @@
 <template>
   <!-- Tree Info Section -->
-  <div v-if="!isCollapsed" class="info-content">
+  <div v-if="!isCollapsed && tree" class="info-content">
+
     <section class="info-section tree-info-section">
       <h1>{{ tree.species.speciesCommonName }}</h1>
       <div class="table-details">
@@ -12,7 +13,7 @@
             <td>{{ tree.closestAddress }}</td>
           </tr>
           <tr>
-            <th>Height (m)</th>
+            <th>Height (cm)</th>
             <td>{{ tree.height }}</td>
           </tr>
           <tr>
@@ -30,113 +31,108 @@
         </table>
         <img src="../assets/streetview.png" alt="api not working" class="image">
       </div>
-    </section>
+    </section> 
 
     <!-- Ecological Benefits Section -->
     <section class="info-section ecological-benefits-section">
       <h2>Ecological Benefits</h2>
       <div class="table-details">
         <table>
-        <tr>
-          <th>Carbon Sequestration</th>
-          <td>{{ tree.ecologicalBenefits.carbonSequestration.value }} {{ tree.ecologicalBenefits.carbonSequestration.unit }} ({{ tree.ecologicalBenefits.carbonSequestration.monetary }}$)</td>
-        </tr>
-        <tr>
-          <th>Energy Conserved</th>
-          <td>{{ tree.ecologicalBenefits.energyConserved.value }} {{ tree.ecologicalBenefits.energyConserved.unit }} ({{ tree.ecologicalBenefits.energyConserved.monetary }}$)</td>
-        </tr>
-        <tr>
-          <th>Air Pollutants Removed</th>
-          <td>{{ tree.ecologicalBenefits.airPollutantsRemoved.value }} {{ tree.ecologicalBenefits.airPollutantsRemoved.unit }} ({{ tree.ecologicalBenefits.airPollutantsRemoved.monetary }}$)</td>
-        </tr>
-        <tr>
-          <th>Stormwater Retained</th>
-          <td>{{ tree.ecologicalBenefits.stormwaterRetained.value }} {{ tree.ecologicalBenefits.stormwaterRetained.unit }} ({{ tree.ecologicalBenefits.stormwaterRetained.monetary }}$)</td>
-        </tr>
-      </table>
+          <!-- Sort the ecological benefits array by benefit name before rendering -->
+          <tr v-for="(benefit, index) in sortedEcologicalBenefits" :key="index">
+            <th>{{ benefit.name }}</th>
+            <td>{{ benefit.value }} {{ benefit.unit }} (worth of {{ benefit.monetary }}$)</td>
+          </tr>
+        </table>
+        <p><strong>Total Monetary Value: {{ totalMonetaryValue }}$</strong></p>
       </div>
     </section>
 
     <!-- Record of Activities/Issues Section -->
-    <section class="info-section record-section">
+    <section v-if="tree.inspections.length > 0" class="info-section record-section">
       <h2>Record of Activities/Issues</h2>
       <div class="table-details">
         <table>
           <thead>
             <tr>
               <th>Date</th>
-              <th>Activity</th>
-              <th>Issue</th>
+              <th>Type</th>
+              <th>Description</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(record, index) in tree.inspections" :key="index">
               <td>{{ record.date }}</td>
-              <td>{{ record.activity }}</td>
-              <td>{{ record.issue }}</td>
+              <td>{{ record.type }}</td>
+              <td>{{ record.description }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-    </section>
+    </section> 
   </div>
 </template>
 
 <script setup>
-import { ref, toRef } from 'vue';
+import { onMounted, ref, watch, computed} from 'vue';
+import { useRoute } from 'vue-router';
+
+
+const route = useRoute(); // Get the current route
 
 const props = defineProps({
-  isCollapsed: Boolean
+  isCollapsed: Boolean,
 })
 
-const tree = ref({
-  species: {
-    speciesCommonName: "Sycamore",
-    speciesScientificName: "Acer pseudoplatanus",
-    speciesImageUrl: "https://interval.eu/imgs/.../species1.jpg"
-  },
-  closestAddress: "123 Dublin Street",
-  trunkDiameter: 30,
-  height: 15,
-  canopySpread: 500,
-  condition: "Good",
-  ecologicalBenefits: {
-    carbonSequestration: {
-      unit: "kg/year",
-      value: 50,
-      monetary: 60
-    },
-    energyConserved: {
-      unit: "kWh/year",
-      value: 10,
-      monetary: 15
-    },
-    airPollutantsRemoved: {
-      unit: "pounds/year",
-      value: 20,
-      monetary: 35
-    },
-    stormwaterRetained: {
-      unit: "gallons/year",
-      value: 30,
-      monetary: 40
-    }
-  },
-  inspections: [
-    {
-      id: "record1",
-      date: "2023-01-01",
-      activity: "Pruning",
-      issue: "None"
-    },
-    {
-      id: "record2",
-      date: "2023-06-15",
-      activity: "Inspection",
-      issue: "Pest Infestation"
-    }
-  ]
+const tree = ref(null);
+
+
+// Computed property to sort the ecological benefits by name
+const sortedEcologicalBenefits = computed(() => {
+  return tree.value.ecologicalBenefits.sort((a, b) => {
+    return a.name.localeCompare(b.name);
+  });
 });
+
+const totalMonetaryValue = computed(() => {
+  // Ensure we sum monetary values properly
+  const total = tree.value.ecologicalBenefits.reduce((sum, benefit) => {
+    const monetaryValue = parseFloat(benefit.monetary) || 0; // Ensure it's a number or default to 0
+    return sum + monetaryValue;
+  }, 0);
+
+  // Safely format the result to 2 decimal places
+  return total.toFixed(2); // toFixed returns a string for display
+});
+
+// Function to fetch tree data based on treeId
+const fetchTreeData = async (treeId) => {
+  try {
+    const response = await fetch(`http://localhost:3001/api/trees/${treeId}`);
+    const treeData = await response.json();
+    tree.value = treeData; // Set the fetched data to the tree ref
+    console.log(tree.value);
+  } catch (error) {
+    console.error('Error fetching tree data:', error);
+  }
+};
+
+// onMounted: When the component is mounted, check if tree data is passed
+onMounted(() => {
+  const treeId = route.params.treeId;
+  if (treeId) {
+    fetchTreeData(treeId); // Fetch tree data from API
+  }
+});
+
+// Watch for changes to the route params (in case of navigation)
+watch(() => route.params.treeId, (newTreeId) => {
+  if (newTreeId) {
+    fetchTreeData(newTreeId); // Refetch the tree data when the treeId changes
+  }
+});
+
+
 </script>
 
 <style scoped>

@@ -29,9 +29,9 @@ export default {
 			title: 'Dublin City Tree Map',  // Website title
 			subtitle: "Explore and Care For Dublin's Urban Forset", // website summary
 			links: [
-				{ name: 'Tree Inventory', path: '/inventory' },
-				{ name: 'Tree Canopy Map', path: '/map' },
-				{ name: 'About', path: '/about' },
+				{ name: 'Tree Inventory', path: '/' },
+				{ name: 'Tree Canopy Map', path: '/' },
+				{ name: 'About', path: '/' },
 			]
 		};
 	}

@@ -1,35 +1,32 @@
 <template>
-    <InfoPage :active-page="activePage" />
-    <TreeFilter />
-    <div class="map-container">
-      <div id="map" class="leaflet-map"></div>
-    </div>
+  <div class="map-container">
+    <div id="map" class="leaflet-map"></div>
     <button @click.prevent="submitGeo()" class="geo-btn">
-      Geo Submit
+    Geo Submit
     </button>
-  </template>
+  </div>
+
+</template>
   
 <script setup>
-import { ref, onMounted, shallowRef, toRef} from 'vue';
+import { ref, onMounted, shallowRef, inject} from 'vue';
+import { useRouter } from 'vue-router';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css'
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
+import 'leaflet.vectorgrid/dist/Leaflet.VectorGrid.bundled.js';
 import 'leaflet-geosearch/dist/geosearch.css'; // Import the CSS for GeoSearch
 import { OpenStreetMapProvider, GeoSearchControl } from 'leaflet-geosearch'; // Import GeoSearch and OSM provider
 import 'esri-leaflet';
-import InfoPage from './InfoPage.vue';
-import TreeFilter from './TreeFilter.vue';
 
+const router = useRouter();
+
+// Inject the globally provided 'speciesColors'
+const speciesColors = inject('speciesColors');
 
 
 const map = shallowRef(null); // A ref for the Leaflet map
-
-const activePage = ref({
-  treePage: false,
-  statisticPage: true
-})
-
 
 const markerIcon = L.icon({
     iconSize: [25, 41],
@@ -39,29 +36,8 @@ const markerIcon = L.icon({
     shadowUrl: 'marker-shadow.png'
   });
 
-// Sample GeoJSON for 3 trees
-const treeGeoJSON = {
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "geometry": { "type": "Point", "coordinates": [-6.2603, 53.3498] },
-      "properties": { "id": "tree1", "speciesCommonName": "Sycamore", "trunkDiameter": 30 }
-    },
-    {
-      "type": "Feature",
-      "geometry": { "type": "Point", "coordinates": [-6.2615, 53.3489] },
-      "properties": { "id": "tree2", "speciesCommonName": "Oak", "trunkDiameter": 40 }
-    },
-    {
-      "type": "Feature",
-      "geometry": { "type": "Point", "coordinates": [-6.2628, 53.3478] },
-      "properties": { "id": "tree3", "speciesCommonName": "Maple", "trunkDiameter": 50 }
-    }
-  ]
-};
-
-let treeLayer = null;
+// Import the GeoJSON electoral divisions file from the assets folder
+const geojsonUrl = new URL('@/assets/electoral_dublin.geojson', import.meta.url).href;
 
 onMounted(() => {
   // Initialize the map with a specific center and zoom level
@@ -75,36 +51,71 @@ onMounted(() => {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map.value);
 
-  // Add the GeoJSON layer for the tree markers
-  treeLayer = L.geoJSON(treeGeoJSON, {
-    pointToLayer: (feature, latlng) => {
-      // Convert the point into a circle marker with styling
-      return L.circleMarker(latlng, styleFeature(feature));
-    },
-    onEachFeature: (feature, layer) => {
-      // Add popup to each feature
-      layer.bindPopup(`<b>Tree ID:</b> ${feature.properties.id}<br/><b>Species:</b> ${feature.properties.speciesCommonName}<br/><b>Trunk Diameter:</b> ${feature.properties.trunkDiameter} cm`);
+  let geoJsonLayer;
 
-       // Add a click event listener to the layer
-      layer.on('click', () => {
-        showTreePage(activePage)
-      });  
-    } 
-  });
-
-  // Listen for the zoomend event to toggle visibility of the GeoJSON layer
-  map.value.on('zoomend', function () {
+  // Load the GeoJSON data
+  fetch(geojsonUrl)
+    .then(response => response.json())
+    .then(geojsonData => {
+      geoJsonLayer = L.geoJSON(geojsonData, {
+        style: {
+          color: '#ffffff',
+          weight: 3,
+          opacity: 1,
+          fillColor:'#006400',
+          fillOpacity: 0.5
+        },
+        onEachFeature: onEachFeature
+      }).addTo(map.value);
+      // Initially hide the layer if zoom level is higher than 14
+      if (map.value.getZoom() > 14) {
+        map.value.removeLayer(geoJsonLayer);
+      }
+    }).catch(error => console.error('Error loading the GeoJSON file:', error));
+  
+  // Listen to zoom events to show/hide the GeoJSON layer
+  map.value.on('zoomend', () => {
     const currentZoom = map.value.getZoom();
-    if (currentZoom >= 17) {
-      if (!map.value.hasLayer(treeLayer)) {
-        treeLayer.addTo(map.value);  // Add the layer if zoom level is 17 or higher
-      }
-    } else {
-      if (map.value.hasLayer(treeLayer)) {
-        map.value.removeLayer(treeLayer);  // Remove the layer if zoom level is less than 17
-      }
+    if (currentZoom > 14 && map.value.hasLayer(geoJsonLayer)) {
+      // Remove the layer if zoom level is above 14
+      map.value.removeLayer(geoJsonLayer);
+    } else if (currentZoom <= 14 && !map.value.hasLayer(geoJsonLayer)) {
+      // Add the layer back if zoom level is 14 or below
+      map.value.addLayer(geoJsonLayer);
     }
   });
+
+
+
+  // Add vector tiles for trees
+  var vectorTileLayer = L.vectorGrid
+    .protobuf('http://localhost:3000/tree/{z}/{x}/{y}', {
+      rendererFactory: L.svg.tile,
+      vectorTileLayerStyles: {
+        'tree': function (properties, zoom) {
+          // Get the species color from the loaded color map or fallback to a default green
+          var color = speciesColors[properties.species_id] || '#00FF00';
+
+          var radius = properties.actual_spread ? properties.actual_spread / 100 + 10.1 : 10.1; // Adjust scaling factor based on data
+        
+          return {
+            color: color,
+            fill: true,
+            fillOpacity: 0.7,
+            radius: radius/zoom // Set the radius dynamically based on 'actual_spread'
+          };
+        }
+      },
+      minZoom: 15,
+      interactive: true
+    }).addTo(map.value);
+
+  // Click event handler for vector grid tiles (tree layer)
+  vectorTileLayer.on('click', async function(e) {
+    const treeId = e.layer.properties.tree_id;
+    router.push({name:'TreeInfo', params:{treeId: treeId}})
+    });
+  
 
   // Initialize the OpenStreetMap provider for GeoSearch
   const provider = new OpenStreetMapProvider();
@@ -147,23 +158,36 @@ const submitGeo = () => {
     console.log(map.value.pm.getGeomanDrawLayers()[0].pm._shape);
 }
 
-function showTreePage(activePage) {
-  activePage.value.treePage = true;
-  activePage.value.statisticPage = false;
+function onEachFeature(feature, layer) {
+
+  // Get the "ENGLISH" property
+  const label = feature.properties.ENGLISH || 'No Name'; // Use fallback if "ENGLISH" is empty
+
+  // Calculate the centroid of the polygon using its bounds
+  const bounds = layer.getBounds();
+  const centroid = bounds.getCenter(true);
+
+  // Create a DivIcon to show the text without any box or background
+  const textIcon = L.divIcon({
+    className: '',  // Custom class for styling
+    html: `<div style="font-weight: bold; color: white; font-size: 12px; white-space: nowrap; pointer-events: none;">
+                   ${label}
+                 </div>`,              // Display the label text
+    iconSize: null            // Let the icon size be determined by text content
+  });
+
+  // Add the text icon at the centroid of the polygon
+  L.marker(centroid, { icon: textIcon }).addTo(map.value);
+
+  layer.on('click', (e) => {
+    // Get the click location (lat/lng)
+    const clickedLatLng = e.latlng;
+
+    // Pan and zoom to the clicked position at zoom level 15
+    map.value.setView(clickedLatLng, 15);
+  });
 }
 
-
-// Function to style the GeoJSON points based on tree trunk diameter
-function styleFeature(feature) {
-  return {
-    radius: feature.properties.trunkDiameter / 3, // Circle size based on trunk diameter
-    fillColor: "#3388ff",
-    color: "#3388ff",
-    weight: 1,
-    opacity: 1,
-    fillOpacity: 0.5
-  };
-};
 </script>
 
 <style scoped>
@@ -185,5 +209,6 @@ function styleFeature(feature) {
   right: 10px;
   z-index: 10000;
 }
+
 
 </style>

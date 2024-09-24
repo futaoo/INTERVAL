@@ -10,7 +10,6 @@ import IntervalContent from './components/IntervalContent.vue';
     <IntervalHeader />
     <IntervalContent />
     <IntervalFooter />
-    <router-view></router-view>
   </div>
 </template>
 
