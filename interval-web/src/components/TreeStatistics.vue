@@ -7,10 +7,10 @@
       <p>{{desc.intro}}</p>
     </div>
     <section class="info-section tree-statistics-section">
-      <h1>Citywide Statistics</h1>
+      <h1>{{ electoralName }} Tree Statistics</h1>
       <div class="table-details">
         <div class="pie-chart-container">
-          <PieChart :chart-data="chartData"  />
+          <PieChart v-if="treeStatistics.speciesComposition.length" :chart-data="treeStatistics.speciesComposition"  />
           <h2 >Tree Species Composition</h2>
         </div>
         <table class="stats-summary-table">
@@ -27,20 +27,12 @@
             <td>{{ treeStatistics.totalIssues }}</td>
           </tr>
           <tr>
-            <th>Public Trees:</th>
-            <td>{{ treeStatistics.public }}</td>
-          </tr>
-          <tr>
             <th>Private Trees:</th>
-            <td>{{ treeStatistics.private }}</td>
-          </tr>
-          <tr>
-            <th>Native Trees:</th>
-            <td>{{ treeStatistics.native }}</td>
+            <td>{{ treeStatistics.privatePercentage }} %</td>
           </tr>
           <tr>
             <th>Non-Native Trees:</th>
-            <td>{{ treeStatistics.noNative }}</td>
+            <td>{{ treeStatistics.nonNativePercentage }} %</td>
           </tr>
           <tr>
             <th>Most Common Species:</th>
@@ -55,24 +47,11 @@
       <h2>Ecological Benefits</h2>
       <div class="table-details">
         <table class="benefits-table">
-          <tr>
-            <th>Total Carbon Sequestration:</th>
-            <td>{{ treeStatistics.ecologicalBenefits.carbonSequestration.value }} {{ treeStatistics.ecologicalBenefits.carbonSequestration.unit }}</td>
-          </tr>
-          <tr>
-            <th>Total Energy Conserved:</th>
-            <td>{{ treeStatistics.ecologicalBenefits.energyConserved.value }} {{ treeStatistics.ecologicalBenefits.energyConserved.unit }}</td>
-          </tr>
-          <tr>
-            <th>Total Air Pollutants Removed:</th>
-            <td>{{ treeStatistics.ecologicalBenefits.airPollutantsRemoved.value }} {{ treeStatistics.ecologicalBenefits.airPollutantsRemoved.unit }}</td>
-          </tr>
-          <tr>
-            <th>Total Stormwater Retained:</th>
-            <td>{{ treeStatistics.ecologicalBenefits.stormwaterRetained.value }} {{ treeStatistics.ecologicalBenefits.stormwaterRetained.unit }}</td>
+          <tr v-for="(benefit, index) in treeStatistics.ecologicalBenefits" :key="index">
+            <th>Total {{ benefit.name }}:</th>
+            <td>{{ benefit.totalValue }} {{ benefit.unit }}</td>
           </tr>
         </table>
-
       </div>
     </section>
 
@@ -84,15 +63,15 @@
           <thead>
             <tr>
               <th>Date</th>
-              <th>Activity</th>
-              <th>Issue</th>
+              <th>Activity Type</th>
+              <th>Description</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(record, index) in treeStatistics.activitiesAndIssues" :key="index">
+            <tr v-for="(record, index) in treeStatistics.activities" :key="index">
               <td>{{ record.date }}</td>
-              <td>{{ record.activity }}</td>
-              <td>{{ record.issue }}</td>
+              <td>{{ record.type }}</td>
+              <td>{{ record.description }}</td>
             </tr>
           </tbody>
         </table>
@@ -102,9 +81,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-
+import { ref, onMounted, watch, inject} from 'vue';
+import { useRoute } from 'vue-router';
 import PieChart from './PieChart.vue';
+
+
+const route = useRoute(); // Get the current route
+
 
 const props = defineProps({
   isCollapsed: Boolean
@@ -117,59 +100,73 @@ const desc = ref( {
 });
 
 const treeStatistics = ref({
-  totalTrees: 150,
-  totalSpecies: 20,
-  totalIssues: 5,
-  mostCommonSpecies: "Sycamore",
-  public: 120,
-  private: 30,
-  native: 130,
-  noNative: 20,
-  ecologicalBenefits: {
-    carbonSequestration: {
-      unit: "kg/year",
-      value: 5000
-    },
-    energyConserved: {
-      unit:"kWh/year",
-      value: 1000
-    },
-    airPollutantsRemoved: {
-      unit: "pounds/year",
-      value: 300
-    },
-    stormwaterRetained: {
-      unit: "gallons/year",
-      value: 10000
-    }
-  },
-  speciesComposition: [
-    { name: "Sycamore", count: 45 },
-    { name: "Oak", count: 30 },
-    { name: "Maple", count: 20 },
-    { name: "Pine", count: 15 },
-    { name: "Birch", count: 10 }
-  ],
-  activitiesAndIssues: [
-    { date: "2024-01-01", activity: "Pruning", issue: "None" },
-    { date: "2023-06-15", activity: "Inspection", issue: "Pest Infestation" },
-    { date: "2023-09-10", activity: "Fertilizing", issue: "None" },
-    { date: "2023-11-02", activity: "Inspection", issue: "Disease" }
-  ]
+  totalTrees: 0,
+  totalSpecies: 0,
+  totalIssues: 0,
+  mostCommonSpecies: "",
+  publicPercentage: 0,
+  privatePercentage: 0,
+  nativePercentage: 0,
+  nonNativePercentage: 0,
+  ecologicalBenefits: [],
+  speciesComposition: [],
+  activities: []
+});
+const electoralName = ref('Dublin');
+
+
+
+// Simulate fetching data from API
+onMounted(async ()=>{
+  const electoralId = route.params.id;
+  if(electoralId){
+    fetchStatistics(electoralId);
+  }
 });
 
-// Prepare data for Pie Chart
-const chartData = computed(() => ({
-  labels: treeStatistics.value.speciesComposition.map(species => species.name),
-  datasets: [
-    {
-      label: "Tree Species Composition",
-      data: treeStatistics.value.speciesComposition.map(species => species.count),
-      backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"],
-      hoverBackgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"]
-    }
-  ]
-}));
+
+
+const fetchStatistics = async (electoralId)=>{
+  
+  try{
+    const response = await fetch(`http://localhost:3001/api/electoral/${electoralId}`);
+    const data = await response.json();
+
+    // Sort activities by date (most recent first), format the date to 'yyyy-mm-dd', and select the top 10
+    const sortedActivities = data.activities
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 10)
+      .map(activity => ({
+        ...activity,
+        date: new Date(activity.date).toISOString().slice(0, 10) // Format to 'yyyy-mm-dd'
+      }));
+    
+    electoralName.value = data.electoralName;
+    treeStatistics.value = {
+      totalTrees: data.totalTrees,
+      totalSpecies: data.totalSpecies,
+      totalIssues: data.activities.length,
+      mostCommonSpecies: data.mostCommonSpecies,
+      publicPercentage: data.publicPercentage,
+      privatePercentage: data.privatePercentage,
+      nativePercentage: data.nativePercentage,
+      nonNativePercentage: data.nonNativePercentage,
+      ecologicalBenefits: data.ecologicalBenefits,
+      speciesComposition: data.speciesComposition,
+      activities: sortedActivities
+    };
+  }catch (error) {
+    console.error('Error fetching electoral data:', error);
+  } 
+}
+
+// Watch for changes to the route params (in case of navigation)
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    fetchStatistics(newId); // Refetch the tree data when the treeId changes
+  }
+});
+
 </script>
 
 <style scoped>

@@ -111,7 +111,6 @@ const fetchTreeData = async (treeId) => {
     const response = await fetch(`http://localhost:3001/api/trees/${treeId}`);
     const treeData = await response.json();
     tree.value = treeData; // Set the fetched data to the tree ref
-    console.log(tree.value);
   } catch (error) {
     console.error('Error fetching tree data:', error);
   }

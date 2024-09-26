@@ -37,7 +37,7 @@ const markerIcon = L.icon({
   });
 
 // Import the GeoJSON electoral divisions file from the assets folder
-const geojsonUrl = new URL('@/assets/electoral_dublin.geojson', import.meta.url).href;
+// const geojsonUrl = new URL('@/assets/electoral_dublin.geojson', import.meta.url).href;
 
 onMounted(() => {
   // Initialize the map with a specific center and zoom level
@@ -51,58 +51,121 @@ onMounted(() => {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map.value);
 
-  let geoJsonLayer;
+  // let geoJsonLayer;
+  // // Load the GeoJSON data
+  // fetch(geojsonUrl)
+  //   .then(response => response.json())
+  //   .then(geojsonData => {
+  //     geoJsonLayer = L.geoJSON(geojsonData, {
+  //       style: {
+  //         color: '#ffffff',
+  //         weight: 3,
+  //         opacity: 1,
+  //         fillColor:'#006400',
+  //         fillOpacity: 0.5
+  //       },
+  //       onEachFeature: onEachFeature
+  //     }).addTo(map.value);
+  //     // Initially hide the layer if zoom level is higher than 14
+  //     if (map.value.getZoom() > 14) {
+  //       map.value.removeLayer(geoJsonLayer);
+  //     }
+  //   }).catch(error => console.error('Error loading the GeoJSON file:', error));
+  
+  // // Listen to zoom events to show/hide the GeoJSON layer
+  // map.value.on('zoomend', () => {
+  //   const currentZoom = map.value.getZoom();
+  //   if (currentZoom > 14 && map.value.hasLayer(geoJsonLayer)) {
+  //     // Remove the layer if zoom level is above 14
+  //     map.value.removeLayer(geoJsonLayer);
+  //   } else if (currentZoom <= 14 && !map.value.hasLayer(geoJsonLayer)) {
+  //     // Add the layer back if zoom level is 14 or below
+  //     map.value.addLayer(geoJsonLayer);
+  //   }
+  // });
 
-  // Load the GeoJSON data
-  fetch(geojsonUrl)
-    .then(response => response.json())
-    .then(geojsonData => {
-      geoJsonLayer = L.geoJSON(geojsonData, {
-        style: {
-          color: '#ffffff',
+  const markers = new Map();
+
+  // Add vector tiles for trees
+  var electoralTileLayer = L.vectorGrid
+    .protobuf('http://localhost:3000/electoral/{z}/{x}/{y}', {
+      // rendererFactory: L.svg.tile,
+      vectorTileLayerStyles: {
+        'electoral':  {
+          color: 'black',
           weight: 3,
           opacity: 1,
           fillColor:'#006400',
-          fillOpacity: 0.5
-        },
-        onEachFeature: onEachFeature
-      }).addTo(map.value);
-      // Initially hide the layer if zoom level is higher than 14
-      if (map.value.getZoom() > 14) {
-        map.value.removeLayer(geoJsonLayer);
-      }
-    }).catch(error => console.error('Error loading the GeoJSON file:', error));
-  
-  // Listen to zoom events to show/hide the GeoJSON layer
-  map.value.on('zoomend', () => {
-    const currentZoom = map.value.getZoom();
-    if (currentZoom > 14 && map.value.hasLayer(geoJsonLayer)) {
-      // Remove the layer if zoom level is above 14
-      map.value.removeLayer(geoJsonLayer);
-    } else if (currentZoom <= 14 && !map.value.hasLayer(geoJsonLayer)) {
-      // Add the layer back if zoom level is 14 or below
-      map.value.addLayer(geoJsonLayer);
-    }
-  });
+          fillOpacity: 0.6,
+          fill: true
+        }
+      },
+      maxZoom: 14,
+      interactive: true,
+      getFeatureId: function(feature) { 
+        if(!markers.has(feature.properties.ogc_fid)){
+          const { english, ctrd_lat, ctrd_long } = feature.properties;
+          // Create a custom DivIcon to display the "english" property
+          const labelIcon = L.divIcon({
+            className: 'text-label',
+            html: `<div style="font-weight: bold; color: black; font-size: 12px; white-space: nowrap; pointer-events: none;">
+                      ${english}
+                    </div>`,
+            iconSize: null // Size based on content
+          });
+            // Add a marker with the custom DivIcon at the centroid position (ctrd_lat, ctrd_long)
+          const electoral_marker = L.marker([ctrd_lat, ctrd_long], { icon: labelIcon }).addTo(map.value); 
+          markers.set(feature.properties.ogc_fid, electoral_marker)
+        }
 
+      }
+  }).addTo(map.value);
+
+  electoralTileLayer.on('click', async (e) => {
+    // Get the click location (lat/lng)
+    const clickedLatLng = e.latlng;
+    const electoral_id = e.layer.properties.ogc_fid;
+    // Pan and zoom to the clicked position at zoom level 15
+    map.value.setView(clickedLatLng, 15);
+
+    router.push({name:'ElectoralStatistics', params:{id: electoral_id}})
+    
+  })
+
+  // add electoral label dynamically according to the zoom level
+  map.value.on('zoomend', ()=>{
+    if(map.value.getZoom()>14 && markers.size>0){
+      markers.forEach((marker)=>{
+        map.value.removeLayer(marker);
+      })
+    }else if(map.value.getZoom()==14){
+      markers.forEach((marker)=>{
+        marker.addTo(map.value);
+      })
+    }
+  }) 
+
+
+
+  
 
 
   // Add vector tiles for trees
-  var vectorTileLayer = L.vectorGrid
+  var treeTileLayer = L.vectorGrid
     .protobuf('http://localhost:3000/tree/{z}/{x}/{y}', {
       rendererFactory: L.svg.tile,
       vectorTileLayerStyles: {
-        'tree': function (properties, zoom) {
+        'tree': function (properties) {
           // Get the species color from the loaded color map or fallback to a default green
           var color = speciesColors[properties.species_id] || '#00FF00';
 
-          var radius = properties.actual_spread ? properties.actual_spread / 100 + 10.1 : 10.1; // Adjust scaling factor based on data
+          var radius = properties.actual_spread ? properties.actual_spread/100 +10 : 10; // Adjust scaling factor based on data
         
           return {
             color: color,
             fill: true,
             fillOpacity: 0.7,
-            radius: radius/zoom // Set the radius dynamically based on 'actual_spread'
+            radius: radius // Set the radius dynamically based on 'actual_spread'
           };
         }
       },
@@ -111,7 +174,7 @@ onMounted(() => {
     }).addTo(map.value);
 
   // Click event handler for vector grid tiles (tree layer)
-  vectorTileLayer.on('click', async function(e) {
+  treeTileLayer.on('click', async function(e) {
     const treeId = e.layer.properties.tree_id;
     router.push({name:'TreeInfo', params:{treeId: treeId}})
     });
@@ -158,35 +221,35 @@ const submitGeo = () => {
     console.log(map.value.pm.getGeomanDrawLayers()[0].pm._shape);
 }
 
-function onEachFeature(feature, layer) {
+// function onEachFeature(feature, layer) {
 
-  // Get the "ENGLISH" property
-  const label = feature.properties.ENGLISH || 'No Name'; // Use fallback if "ENGLISH" is empty
+//   // Get the "ENGLISH" property
+//   const label = feature.properties.ENGLISH || 'No Name'; // Use fallback if "ENGLISH" is empty
 
-  // Calculate the centroid of the polygon using its bounds
-  const bounds = layer.getBounds();
-  const centroid = bounds.getCenter(true);
+//   // Calculate the centroid of the polygon using its bounds
+//   const bounds = layer.getBounds();
+//   const centroid = bounds.getCenter(true);
 
-  // Create a DivIcon to show the text without any box or background
-  const textIcon = L.divIcon({
-    className: '',  // Custom class for styling
-    html: `<div style="font-weight: bold; color: white; font-size: 12px; white-space: nowrap; pointer-events: none;">
-                   ${label}
-                 </div>`,              // Display the label text
-    iconSize: null            // Let the icon size be determined by text content
-  });
+//   // Create a DivIcon to show the text without any box or background
+//   const textIcon = L.divIcon({
+//     className: '',  // Custom class for styling
+//     html: `<div style="font-weight: bold; color: white; font-size: 12px; white-space: nowrap; pointer-events: none;">
+//                    ${label}
+//                  </div>`,              // Display the label text
+//     iconSize: null            // Let the icon size be determined by text content
+//   });
 
-  // Add the text icon at the centroid of the polygon
-  L.marker(centroid, { icon: textIcon }).addTo(map.value);
+//   // Add the text icon at the centroid of the polygon
+//   L.marker(centroid, { icon: textIcon }).addTo(map.value);
 
-  layer.on('click', (e) => {
-    // Get the click location (lat/lng)
-    const clickedLatLng = e.latlng;
+//   layer.on('click', (e) => {
+//     // Get the click location (lat/lng)
+//     const clickedLatLng = e.latlng;
 
-    // Pan and zoom to the clicked position at zoom level 15
-    map.value.setView(clickedLatLng, 15);
-  });
-}
+//     // Pan and zoom to the clicked position at zoom level 15
+//     map.value.setView(clickedLatLng, 15);
+//   });
+// }
 
 </script>
 

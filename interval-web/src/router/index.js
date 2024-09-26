@@ -26,6 +26,11 @@ const routes = [
         path:':treeId',
         name:'TreeInfo',
         component: TreeInfo
+      },
+      {
+        path:'electoral_dublin/:id',
+        name: 'ElectoralStatistics',
+        component: TreeStatistics
       }
     ]
   }
