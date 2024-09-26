@@ -121,9 +121,8 @@ const electoralName = ref('Dublin');
 // Simulate fetching data from API
 onMounted(async ()=>{
   const electoralId = route.params.id;
-  if(electoralId){
-    fetchStatistics(electoralId);
-  }
+  console.log(electoralId);
+  fetchStatistics(electoralId);
 });
 
 

@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import IntervalMap from '../components/IntervalMap.vue';
 import InfoPage from '../components/InfoPage.vue';
 import TreeInfo from '../components/TreeInfo.vue';
-import IntervalContent from '@/components/IntervalContent.vue';
 import TreeStatistics from '@/components/TreeStatistics.vue';
 
 const routes = [
@@ -10,7 +8,7 @@ const routes = [
   {
     path:'/',
     name:'Home',
-    redirect: '/trees' 
+    redirect: '/trees/county_dublin' 
   },
   {
     path: '/trees',
@@ -21,6 +19,7 @@ const routes = [
         path: '',
         name:'TreeStatistics',
         component: TreeStatistics,
+        redirect:'/trees/county_dublin'
       },
       {
         path:':treeId',
@@ -28,9 +27,9 @@ const routes = [
         component: TreeInfo
       },
       {
-        path:'electoral_dublin/:id',
+        path:'county_dublin/:id?',
         name: 'ElectoralStatistics',
-        component: TreeStatistics
+        component: TreeStatistics,
       }
     ]
   }

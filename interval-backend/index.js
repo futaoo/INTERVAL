@@ -46,22 +46,42 @@ app.get('/api/electoral_label', async (req, res) => {
 
 
 // GET route for statistics about trees within an electoral division
-app.get('/api/electoral/:id', async (req, res) => {
+app.get('/api/electoral/:id?', async (req, res) => {
   const electoralId = req.params.id; // Use ogc_fid as the identifier
 
   try {
-    // Query to get the electoral division geometry and the English name (from "english" field) using ogc_fid
-    const electoralResult = await pool.query(
-      'SELECT geom, english FROM tree_data.electoral_dublin WHERE ogc_fid = $1', 
-      [electoralId]
-    );
+    let electoralGeom;
+    let electoralName;
 
-    if (electoralResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Electoral division not found' });
+    if (electoralId) {
+      // If electoralId is provided, get the geometry for that specific electoral division
+      const electoralResult = await pool.query(
+        'SELECT geom, english FROM tree_data.electoral_dublin WHERE ogc_fid = $1', 
+        [electoralId]
+      );
+
+      if (electoralResult.rows.length === 0) {
+        return res.status(404).json({ message: 'Electoral division not found' });
+      }
+
+      electoralGeom = electoralResult.rows[0].geom;
+      electoralName = electoralResult.rows[0].english
+    } else {
+      // If no electoralId is provided, use a large geometry that covers the entire area (e.g., the world)
+      electoralGeom = 'SRID=4326;POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))';
     }
+    // // Query to get the electoral division geometry and the English name (from "english" field) using ogc_fid
+    // const electoralResult = await pool.query(
+    //   'SELECT geom, english FROM tree_data.electoral_dublin WHERE ogc_fid = $1', 
+    //   [electoralId]
+    // );
 
-    const electoralGeom = electoralResult.rows[0].geom;
-    const electoralName = electoralResult.rows[0].english; // Get the name from "english" field
+    // if (electoralResult.rows.length === 0) {
+    //   return res.status(404).json({ message: 'Electoral division not found' });
+    // }
+
+    // const electoralGeom = electoralResult.rows[0].geom;
+    // const electoralName = electoralResult.rows[0].english; // Get the name from "english" field
 
     // Query to get the tree statistics within the electoral division
     const statsResult = await pool.query(`
@@ -144,7 +164,7 @@ app.get('/api/electoral/:id', async (req, res) => {
 
     // Construct the response
     const statistics = {
-      electoralName: electoralName,  // Include the electoral name
+      electoralName: electoralName? electoralName : 'all',  // Include the electoral name
       totalTrees: statsResult.rows[0].total_trees,
       totalSpecies: statsResult.rows[0].total_species,
       mostCommonSpecies: statsResult.rows[0].most_common_species,
