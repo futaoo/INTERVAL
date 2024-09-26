@@ -162,6 +162,13 @@ const fetchStatistics = async (electoralId)=>{
   } 
 }
 
+// Watch for changes to the route params (in case of navigation)
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    fetchStatistics(newId); // Refetch the tree data when the treeId changes
+  }
+});
+
 </script>
 
 <style scoped>
