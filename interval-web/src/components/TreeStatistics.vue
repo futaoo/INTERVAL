@@ -10,7 +10,7 @@
       <h1>{{ electoralName }} Tree Statistics</h1>
       <div class="table-details">
         <div class="pie-chart-container">
-          <PieChart v-if="treeStatistics.speciesComposition.length" :chart-data="treeStatistics.speciesComposition"  />
+          <PieChart :key="route.params.id" v-if="treeStatistics.speciesComposition.length" :chart-data="treeStatistics.speciesComposition"  />
           <h2 >Tree Species Composition</h2>
         </div>
         <table class="stats-summary-table">
@@ -81,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, inject} from 'vue';
+import { ref, onMounted, watch} from 'vue';
 import { useRoute } from 'vue-router';
 import PieChart from './PieChart.vue';
 
@@ -112,6 +112,8 @@ const treeStatistics = ref({
   speciesComposition: [],
   activities: []
 });
+
+
 const electoralName = ref('Dublin');
 
 

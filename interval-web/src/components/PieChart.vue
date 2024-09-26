@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, inject } from 'vue';
+import { onMounted, ref, inject, watch } from 'vue';
 import { Chart, PieController, ArcElement, Tooltip, Legend } from 'chart.js';
 
 // Inject the globally provided 'speciesColors'
@@ -27,7 +27,12 @@ const pieData = ref({});
 
 // Initialize the chart when the component is mounted
 onMounted(() => {
+  initializePieChart();
+});
 
+
+
+function initializePieChart() {
   if (props.chartData && props.chartData.length>0){
     pieData.value = {
       labels: props.chartData.map(species => species.speciesCode),
@@ -58,11 +63,8 @@ onMounted(() => {
         }
       }
     });
-
   }
-
-  
-});
+};
 </script>
 
 <style scoped>
