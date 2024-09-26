@@ -114,14 +114,13 @@ const treeStatistics = ref({
 });
 
 
-const electoralName = ref('Dublin');
+const electoralName = ref('');
 
 
 
 // Simulate fetching data from API
 onMounted(async ()=>{
   const electoralId = route.params.id;
-  console.log(electoralId);
   fetchStatistics(electoralId);
 });
 
@@ -130,6 +129,7 @@ onMounted(async ()=>{
 const fetchStatistics = async (electoralId)=>{
   
   try{
+    console.log(electoralId);
     const response = await fetch(`http://localhost:3001/api/electoral/${electoralId}`);
     const data = await response.json();
 
@@ -140,9 +140,11 @@ const fetchStatistics = async (electoralId)=>{
       .map(activity => ({
         ...activity,
         date: new Date(activity.date).toISOString().slice(0, 10) // Format to 'yyyy-mm-dd'
-      }));
+    }));
+
+    electoralName.value = electoralId? data.electoralName:'Citywide';
     
-    electoralName.value = data.electoralName;
+    // electoralName.value = data.electoralName;
     treeStatistics.value = {
       totalTrees: data.totalTrees,
       totalSpecies: data.totalSpecies,
