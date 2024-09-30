@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import InfoPage from '../components/InfoPage.vue';
 import TreeInfo from '../components/TreeInfo.vue';
 import TreeStatistics from '@/components/TreeStatistics.vue';
+import FilterStatistics from '@/components/FilterStatistics.vue';
 
 const routes = [
 
@@ -27,10 +28,15 @@ const routes = [
         component: TreeInfo
       },
       {
-        path:'county_dublin/:id?',
+        path: 'county_dublin/:id?',
         name: 'ElectoralStatistics',
         component: TreeStatistics,
-      }
+      },
+      {
+        path: 'filter',
+        name: 'FilterStatistics',
+        component: FilterStatistics,
+      }         
     ]
   }
 ];

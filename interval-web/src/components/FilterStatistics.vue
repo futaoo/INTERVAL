@@ -7,10 +7,10 @@
       <p>{{desc.intro}}</p>
     </div>
     <section class="info-section tree-statistics-section">
-      <h1>{{ electoralName }} Tree Statistics</h1>
+      <h1>{{ treeStore.electoralName }} Tree Statistics</h1>
       <div class="table-details">
         <div class="pie-chart-container">
-          <PieChart :key="route.params.id" v-if="treeStatistics.speciesComposition.length" :chart-data="treeStatistics.speciesComposition"  />
+          <PieChart v-if="treeStatistics.speciesComposition.length" :key="route.query" :chart-data="treeStatistics.speciesComposition"  />
           <h2 >Tree Species Composition</h2>
         </div>
         <table class="stats-summary-table">
@@ -81,9 +81,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, inject} from 'vue';
+import { ref, onMounted, inject, computed, reactive, onBeforeMount} from 'vue';
 import { useRoute } from 'vue-router';
 import PieChart from './PieChart.vue';
+import { useTreeStore } from '@/stores/statisticsStore';
+import { storeToRefs } from 'pinia'
+
+const treeStore = useTreeStore()
+
+const { treeStatistics } = storeToRefs(treeStore);
 
 
 const route = useRoute(); // Get the current route
@@ -99,79 +105,51 @@ const desc = ref( {
   intro:"For the first time, you can access information about all the trees individually managed in Dublin City, from those lining streets to the ones growing in landscaped areas of parks. Learn about them, favorite and share them with your friends, and record and share your street tree stewardship activities."
 });
 
-const treeStatistics = ref({
-  totalTrees: 0,
-  totalSpecies: 0,
-  totalIssues: 0,
-  mostCommonSpecies: "",
-  publicPercentage: 0,
-  privatePercentage: 0,
-  nativePercentage: 0,
-  nonNativePercentage: 0,
-  ecologicalBenefits: [],
-  speciesComposition: [],
-  activities: []
-});
+onMounted(async()=>{
+  const query = route.query;
 
 
-const electoralName = ref('');
+  // Create a new query object to justify the parameters
+  const justifiedQuery = {};
 
+  // Ensure species_id is an array if it's a single value or undefined
+  justifiedQuery.species_id = query.species_id
+    ? (Array.isArray(query.species_id) ? query.species_id : [query.species_id])
+    : undefined;
 
-// Simulate fetching data from API
-onMounted(async ()=>{
+  // Ensure condition is an array if it's a single value or undefined
+  justifiedQuery.condition = query.condition
+    ? (Array.isArray(query.condition) ? query.condition : [query.condition])
+    : undefined;
 
-  const electoralId = route.params.id;
+  // Convert height, trunk, and spread ranges to numbers and handle missing values
+  justifiedQuery.height_min = query.height_min ? parseInt(query.height_min, 10) : undefined;
+  justifiedQuery.height_max = query.height_max ? parseInt(query.height_max, 10) : undefined;
 
-  fetchStatistics(electoralId);
+  justifiedQuery.trunk_min = query.trunk_min ? parseInt(query.trunk_min, 10) : undefined;
+  justifiedQuery.trunk_max = query.trunk_max ? parseInt(query.trunk_max, 10) : undefined;
 
-});
+  justifiedQuery.spread_min = query.spread_min ? parseInt(query.spread_min, 10) : undefined;
+  justifiedQuery.spread_max = query.spread_max ? parseInt(query.spread_max, 10) : undefined;
 
+  // Handle the geometry value directly (assume empty string if missing)
+  justifiedQuery.userGeometry = query.userGeometry || undefined;
 
+  // Convert boolean strings to actual boolean values
+  justifiedQuery.is_native = query.is_native === 'true' ? true : query.is_native === 'false' ? false : undefined;
+  justifiedQuery.is_public = query.is_public === 'true' ? true : query.is_public === 'false' ? false : undefined;
 
-const fetchStatistics = async (electoralId)=>{
-  
-  try{
-    const response = await fetch(`http://localhost:3001/api/electoral/${electoralId}`);
-    const data = await response.json();
-
-    // Sort activities by date (most recent first), format the date to 'yyyy-mm-dd', and select the top 10
-    const sortedActivities = data.activities
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 10)
-      .map(activity => ({
-        ...activity,
-        date: new Date(activity.date).toISOString().slice(0, 10) // Format to 'yyyy-mm-dd'
-    }));
-
-    electoralName.value = electoralId? data.electoralName:'Citywide';
-    
-    // electoralName.value = data.electoralName;
-    treeStatistics.value = {
-      totalTrees: data.totalTrees,
-      totalSpecies: data.totalSpecies,
-      totalIssues: data.activities.length,
-      mostCommonSpecies: data.mostCommonSpecies,
-      publicPercentage: data.publicPercentage,
-      privatePercentage: data.privatePercentage,
-      nativePercentage: data.nativePercentage,
-      nonNativePercentage: data.nonNativePercentage,
-      ecologicalBenefits: data.ecologicalBenefits,
-      speciesComposition: data.speciesComposition,
-      activities: sortedActivities
-    };
-  }catch (error) {
-    console.error('Error fetching electoral data:', error);
-  } 
-}
+  // Remove undefined or unnecessary values (e.g., if a field was not supplied)
+  Object.keys(justifiedQuery).forEach(key => {
+    if (justifiedQuery[key] === undefined || justifiedQuery[key] === null) {
+      delete justifiedQuery[key];
+    }
+  });
+  await treeStore.fetchStatistics(justifiedQuery);
+})
 
 
 
-// Watch for changes to the route params (in case of navigation)
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    fetchStatistics(newId); // Refetch the tree data when the treeId changes
-  }
-});
 
 </script>
 
