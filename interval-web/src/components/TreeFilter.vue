@@ -288,7 +288,7 @@ const applyFilters = async () => {
 // Function to map origin to boolean values (true/false) or null
 const mapOriginToBoolean = (origin) => {
   if (origin === 'Native') return true;
-  if (origin === 'Non-Native') return false;
+  if (origin === 'Non-native') return false;
   return null; // No filter selected
 };
 
