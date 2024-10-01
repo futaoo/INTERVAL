@@ -106,50 +106,52 @@ const desc = ref( {
 });
 
 onMounted(async()=>{
-  const query = route.query;
 
+  const fromFilter = treeStore.fromFilter;
+  if (!fromFilter){
+    const query = route.query;
 
-  // Create a new query object to justify the parameters
-  const justifiedQuery = {};
+    // Create a new query object to justify the parameters
+    const justifiedQuery = {};
 
-  // Ensure species_id is an array if it's a single value or undefined
-  justifiedQuery.species_id = query.species_id
-    ? (Array.isArray(query.species_id) ? query.species_id : [query.species_id])
-    : undefined;
+    // Ensure species_id is an array if it's a single value or undefined
+    justifiedQuery.species_id = query.species_id
+      ? (Array.isArray(query.species_id) ? query.species_id : [query.species_id])
+      : undefined;
 
-  // Ensure condition is an array if it's a single value or undefined
-  justifiedQuery.condition = query.condition
-    ? (Array.isArray(query.condition) ? query.condition : [query.condition])
-    : undefined;
+    // Ensure condition is an array if it's a single value or undefined
+    justifiedQuery.condition = query.condition
+      ? (Array.isArray(query.condition) ? query.condition : [query.condition])
+      : undefined;
 
-  // Convert height, trunk, and spread ranges to numbers and handle missing values
-  justifiedQuery.height_min = query.height_min ? parseInt(query.height_min, 10) : undefined;
-  justifiedQuery.height_max = query.height_max ? parseInt(query.height_max, 10) : undefined;
+    // Convert height, trunk, and spread ranges to numbers and handle missing values
+    justifiedQuery.height_min = query.height_min ? parseInt(query.height_min, 10) : undefined;
+    justifiedQuery.height_max = query.height_max ? parseInt(query.height_max, 10) : undefined;
 
-  justifiedQuery.trunk_min = query.trunk_min ? parseInt(query.trunk_min, 10) : undefined;
-  justifiedQuery.trunk_max = query.trunk_max ? parseInt(query.trunk_max, 10) : undefined;
+    justifiedQuery.trunk_min = query.trunk_min ? parseInt(query.trunk_min, 10) : undefined;
+    justifiedQuery.trunk_max = query.trunk_max ? parseInt(query.trunk_max, 10) : undefined;
 
-  justifiedQuery.spread_min = query.spread_min ? parseInt(query.spread_min, 10) : undefined;
-  justifiedQuery.spread_max = query.spread_max ? parseInt(query.spread_max, 10) : undefined;
+    justifiedQuery.spread_min = query.spread_min ? parseInt(query.spread_min, 10) : undefined;
+    justifiedQuery.spread_max = query.spread_max ? parseInt(query.spread_max, 10) : undefined;
 
-  // Handle the geometry value directly (assume empty string if missing)
-  justifiedQuery.userGeometry = query.userGeometry || undefined;
+    // Handle the geometry value directly (assume empty string if missing)
+    justifiedQuery.userGeometry = query.userGeometry || undefined;
 
-  // Convert boolean strings to actual boolean values
-  justifiedQuery.is_native = query.is_native === 'true' ? true : query.is_native === 'false' ? false : undefined;
-  justifiedQuery.is_public = query.is_public === 'true' ? true : query.is_public === 'false' ? false : undefined;
+    // Convert boolean strings to actual boolean values
+    justifiedQuery.is_native = query.is_native === 'true' ? true : query.is_native === 'false' ? false : undefined;
+    justifiedQuery.is_public = query.is_public === 'true' ? true : query.is_public === 'false' ? false : undefined;
 
-  // Remove undefined or unnecessary values (e.g., if a field was not supplied)
-  Object.keys(justifiedQuery).forEach(key => {
-    if (justifiedQuery[key] === undefined || justifiedQuery[key] === null) {
-      delete justifiedQuery[key];
-    }
-  });
-  await treeStore.fetchStatistics(justifiedQuery);
-})
+    // Remove undefined or unnecessary values (e.g., if a field was not supplied)
+    Object.keys(justifiedQuery).forEach(key => {
+      if (justifiedQuery[key] === undefined || justifiedQuery[key] === null) {
+        delete justifiedQuery[key];
+      }
+    });
+    await treeStore.fetchStatistics(justifiedQuery);
+        
+  }
 
-
-
+});
 
 </script>
 

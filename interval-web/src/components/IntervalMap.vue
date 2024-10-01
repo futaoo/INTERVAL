@@ -1,7 +1,6 @@
 <template>
   <div class="map-container">
     <div id="map" class="openlayer-map"></div>
-    <button @click.prevent="submitGeo()" class="geo-btn">Geo Submit</button>
   </div>
 </template>
 
@@ -13,17 +12,21 @@ import * as ol from 'ol';
 import { fromLonLat } from 'ol/proj';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import MVT from 'ol/format/MVT';
-import TileLayer from 'ol/layer/Tile';
-import VectorSource from 'ol/source/Vector';
+import LayerTile from 'ol/layer/Tile';
+import LayerGroup from 'ol/layer/Group';
 import OSM from 'ol/source/OSM';
 import XYZ from 'ol/source/XYZ';
 import VectorTileSource from 'ol/source/VectorTile';
 import { Fill, Stroke, Style, Text, Circle as CircleStyle } from 'ol/style';
-import {asArray, asString} from 'ol/color';
-import Overlay from 'ol/Overlay';
+import {asArray} from 'ol/color';
 import { useTreeStore } from '@/stores/statisticsStore';
-import {Select} from 'ol/interaction';
 import { storeToRefs } from 'pinia';
+import { useMapStore } from '@/stores/mapStore';
+import {Zoom} from 'ol/control';
+import 'ol-layerswitcher/dist/ol-layerswitcher.css';
+import LayerSwitcher from 'ol-layerswitcher';
+
+
 
 
 
@@ -32,6 +35,7 @@ const router = useRouter();
 const speciesColors = inject('speciesColors'); // Inject global color map
 const map = shallowRef(null); // A ref for the OpenLayers map
 const treeStore = useTreeStore();
+const mapStore = useMapStore()
 
 const{inclTreeIds} = storeToRefs(treeStore);
 
@@ -106,23 +110,65 @@ const electoralStyle = (feature) => {
 
 onMounted(() => {
 
+  const osm = new LayerTile({
+    title: 'Street',
+    type: 'base',
+    visible: true,
+    source: new OSM()
+  });
+
+  const carto = new LayerTile({
+    title: 'Light',
+    type: 'base',
+    visible: true,
+    source: new XYZ({
+      url: 'https://{a-d}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+      attributions: '&copy; <a href="https://www.openstreetmap.org/copyright"></a> contributors',
+    }),
+  });
+
+  // Create a LayerGroup for base maps
+  const baseMaps = new LayerGroup({
+    title: 'Base maps',
+    layers: [osm, carto]
+  });
+
   // Create OpenLayers map
   map.value = new ol.Map({
     target: 'map',
-    layers: [
-      new TileLayer({
-        source: new XYZ({
-          url: 'https://{a-d}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-          attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        }),
-      }),
-    ],
+    layers: [baseMaps],
     view: new ol.View({
       center: fromLonLat([-6.26031, 53.349805]), // Center at Dublin
       zoom: 13,
     }),
-    renderer:'webgl'
+    renderer:'webgl',
+    controls: []
   });
+
+  // Initialize the LayerSwitcher control
+  const layerSwitcher = new LayerSwitcher({
+    reverse: true,
+    groupSelectStyle: 'group',
+    activationMode: 'click',
+  });
+
+
+  map.value.addControl(layerSwitcher);
+
+  // Create a new Zoom control
+  const zoomControl = new Zoom();
+
+  // Dynamically update the Zoom control's position
+  // Access the zoom control's element and modify its style using JavaScript
+  map.value.addControl(zoomControl);
+  const zoomElement = zoomControl.element;
+
+  // Set position styles dynamically
+  zoomElement.style.position = 'absolute';
+  zoomElement.style.right = '10px';  // Position from the right
+  zoomElement.style.bottom = '30px'; // Position from the bottom
+  zoomElement.style.left = 'auto';   // Override left position
+  zoomElement.style.top = 'auto';    // Override top position
 
 
   // Create and add a vector tile layer for electoral boundaries
@@ -131,7 +177,7 @@ onMounted(() => {
       format: new MVT(),
       url: 'http://localhost:3000/electoral/{z}/{x}/{y}', 
     }),
-      style: electoralStyle,
+    style: electoralStyle,
     maxZoom: 14,
   });
 
@@ -152,8 +198,7 @@ onMounted(() => {
         // Call `getCachedStyle` to get the appropriate style, including exclusion check
       return getCachedStyle(speciesId, actualSpread);
     },
-    minZoom: 15
-  
+    minZoom: 15,
   });
 
 
@@ -220,15 +265,12 @@ onMounted(() => {
     }
   });
 
-  // Submit the drawn geometry layers (if using drawing libraries in OpenLayers)
-  const submitGeo = () => {
-    // Replace with your OpenLayers drawing feature handling logic
-    console.log('Submit Geo');
-  };
+  mapStore.setMapInstance(map);
+
 });
 </script>
 
-<style scoped>
+<style>
 .map-container {
   width: 100%;
   height: 100%;
@@ -239,10 +281,12 @@ onMounted(() => {
   height: 100%;
 }
 
-.geo-btn {
+.layer-switcher {
   position: absolute;
-  top: 200px;
+  top: auto;
   right: 10px;
-  z-index: 10000;
+  bottom: 100px;
+  text-align: left;
 }
+
 </style>

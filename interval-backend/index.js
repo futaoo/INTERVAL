@@ -208,6 +208,7 @@ app.post('/api/trees', async (req, res) => {
     if (userGeometry) {
       // If user-defined geometry is provided, use that
       electoralGeom = userGeometry;
+      // electoralGeom = `ST_SetSRID(ST_GeomFromText('${userGeometry}'), 4326)`;
     } else {
       // If no userGeometry is provided, use a large geometry that covers the world
       electoralGeom = 'SRID=4326;POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))';

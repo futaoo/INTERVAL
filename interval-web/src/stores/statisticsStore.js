@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 
 export const useTreeStore = defineStore('tree', {
   state: () => ({
+    fromFilter: false,
     inclTreeIds:[],
     electoralName: '',
     treeStatistics: {
@@ -20,6 +21,9 @@ export const useTreeStore = defineStore('tree', {
     }
   }),
   actions: {
+    setFromFilterTrue(){
+      this.fromFilter = true;
+    },
     setExclTreeIds(ids) {
       this.inclTreeIds = ids;
     },
@@ -33,7 +37,6 @@ export const useTreeStore = defineStore('tree', {
       };
     },
     async fetchStatistics(query) {
-      console.log('store', query);
       try {
         const response = await fetch(`http://localhost:3001/api/trees`, {
           method: 'POST',

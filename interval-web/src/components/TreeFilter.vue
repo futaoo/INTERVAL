@@ -124,8 +124,19 @@
             :value="condition" 
           />
           <label>{{ condition }}</label>
-        </div></div>
+        </div>
+        </div>
       </div>
+
+      <div class="filter-item">
+        <label style="font-weight: bold;">Draw Shape:</label>
+        <select v-model="selectedShape" @change="handleDrawShape">
+          <option value="world">Cancel</option>
+          <option value="Box">Bounding Box</option>
+          <option value="Polygon">Polygon</option>
+        </select>
+      </div>
+
 
       <!-- Apply Filter Button -->
       <button @click="applyFilters" class="apply-btn">Apply Filter</button>
@@ -134,17 +145,27 @@
 </template>
 
 <script setup>
+import { useMapStore } from '@/stores/mapStore';
 import { useTreeStore } from '@/stores/statisticsStore';
-import { ref , onMounted, inject} from 'vue';
+import { ref , onMounted} from 'vue';
 import { useRouter } from 'vue-router';
+import Draw, {
+  createBox,
+  // createRegularPolygon,
+} from 'ol/interaction/Draw';
+import {Vector as VectorSource} from 'ol/source';
+import WKT from 'ol/format/WKT';
+import { Vector as VectorLayer } from 'ol/layer';
 
 
+const mapStore = useMapStore();
 const treeStore = useTreeStore()
 
 const router = useRouter();
 
 // Reactive state for popover visibility and filters
 const isPopoverOpen = ref(false);
+
 const filters = ref({
   speciesId: [],
   condition: [],
@@ -171,11 +192,20 @@ const selectedSpecies = ref([]);
 // checkbox list conditions
 const conditions = ref([]);
 
+// Dropdown state for selecting shape type
+const selectedShape = ref('');
 
+// Array to store references to drawn shapes
+const drawnShapes = ref([]);
 
+//Array to store darw layers
+const drawnLayers = ref([]);
 
 // Search query for filtering species
 const searchQuery = ref('');
+
+// Create a persistent draw source 
+const drawSource = new VectorSource();
 
 
 // Function to filter items based on the search query
@@ -224,6 +254,9 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error fetching species data:', error);
   }
+
+  selectedShape.value = '';
+
 });
 
 const applyFilters = async () => {
@@ -247,6 +280,7 @@ const applyFilters = async () => {
   );
 
   await treeStore.fetchStatistics(queryParams);
+  treeStore.setFromFilterTrue()
 
   router.push({name:"FilterStatistics", query: queryParams});
 };
@@ -264,6 +298,103 @@ const mapOwnershipToBoolean = (ownership) => {
   if (ownership === 'Private') return false;
   return null; // No filter selected
 };
+
+const handleDrawShape = () => {
+  const map = mapStore.getMapInstance();  // Access the map instance from the store
+
+  if (!map) {
+    console.error('Map instance not available');
+    return;
+  }
+  
+
+  clearShapes();//remove drawn shapes
+  clearDrawnLayers(map);
+
+  
+
+  // Remove any existing draw interactions from the map
+  map.getInteractions().forEach(interaction => {
+    if (interaction instanceof Draw) {
+      map.removeInteraction(interaction);
+    }
+  });
+
+  const drawLayer = new VectorLayer({
+    source: drawSource,
+  });
+
+  let drawInteraction;
+
+  // Set up the appropriate draw interaction based on the selected shape
+  if (selectedShape.value === 'Box') {
+    // Bounding Box interaction using `Draw.createBox()`
+    drawInteraction = new Draw({
+      source: drawSource,
+      type: 'Circle',  // Use `Circle` with a geometry function to create a box
+      geometryFunction: createBox(),
+    });
+  } else if (selectedShape.value === 'Polygon') {
+    // Polygon interaction
+    drawInteraction = new Draw({
+      source: drawSource,
+      type: 'Polygon',
+    });
+  } else if (selectedShape.value === "world"){
+    filters.value.geoWKT = undefined;
+  }
+
+  if (drawInteraction) {
+    map.addInteraction(drawInteraction);
+
+    // Handle draw end event
+    drawInteraction.on('drawend', (event) => {
+
+      // store reference to the drawn feature
+      const feature = event.feature;
+      drawnShapes.value.push(feature);
+
+      const formattedWKT = formatWKTwithSRID(event.feature.getGeometry())
+      filters.value.geoWKT = formattedWKT;
+      console.log(`Drawn ${selectedShape.value} WKT:`, formattedWKT);
+      map.removeInteraction(drawInteraction);
+      map.addLayer(drawLayer);
+      drawnLayers.value.push(drawLayer);
+    });
+  }
+};
+
+// Function to remove the last drawn shape
+const clearShapes = () => {
+  if (drawnShapes.value.length > 0) {
+    const lastShape = drawnShapes.value.pop(); // Remove the last shape from the array
+    drawSource.removeFeature(lastShape); // Remove the shape from the draw source
+    console.log('Last shape removed');
+  }
+};
+
+const clearDrawnLayers = (map) => {
+  if(drawnLayers.value.length>0) {
+    const lastDrawnLayer =  drawnLayers.value.pop(); // remove the last drawn layer from the array
+    map.removeLayer(lastDrawnLayer);
+    console.log('Last drawn layer removed');
+  }
+}
+
+// Assuming `drawnPolygon` is the OpenLayers Geometry object created after drawing
+function formatWKTwithSRID(drawnPolygon) {
+  // 1. Transform the geometry to EPSG:4326 (WGS84)
+  const transformedGeometry = drawnPolygon.clone().transform('EPSG:3857', 'EPSG:4326'); // Assuming the map is in EPSG:3857
+
+  // 2. Convert the transformed geometry to WKT format
+  const wktFormat = new WKT();
+  const wktString = wktFormat.writeGeometry(transformedGeometry);
+
+  // 3. Add the SRID to the WKT string
+  const wktWithSRID = `SRID=4326;${wktString}`;
+
+  return wktWithSRID;
+}
 
 </script>
 
