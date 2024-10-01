@@ -42,43 +42,6 @@ const{inclTreeIds} = storeToRefs(treeStore);
 
 const styleCache = {};
 
-// // Function to generate styles dynamically and cache them
-// const getCachedStyle = (speciesId, actualSpread, isPublic) => {
-//   // Fallback to default values if properties are missing
-//   const spread = actualSpread ? actualSpread / 100 : 5; // Default radius is 10 if `actual_spread` is not provided
-//   const color = speciesColors[speciesId] || '#00FF00'; // Default color is green if not found
-
-//   // Use speciesId, spread, and isPublic as keys for the cache
-//   const cacheKey = `${speciesId}-${spread}-${isPublic}`;
-
-//   // Return the cached style if it exists, otherwise create and store it
-//   if (!styleCache[cacheKey]) {
-//     const rgbaColor = asArray(color);
-//     rgbaColor[3] = 0.8; // Adjust color to add transparency (opacity)
-
-//     // Check if the tree is public or private
-//     const shapeStyle = isPublic
-//       ? new CircleStyle({
-//           radius: spread, // Dynamic radius based on `actual_spread`
-//           fill: new Fill({ color: rgbaColor }),
-//           stroke: new Stroke({ color: rgbaColor, width: 1 }),
-//         })
-//       : new RegularShape({
-//           points: 3, // Triangle
-//           radius: spread + 5, // Adjust the triangle size
-//           angle: 0, // Orientation of the triangle
-//           fill: new Fill({ color: rgbaColor }),
-//           stroke: new Stroke({ color: rgbaColor, width: 1 }),
-//         });
-
-//     styleCache[cacheKey] = new Style({
-//       image: shapeStyle,
-//     });
-//   }
-
-//   return styleCache[cacheKey];
-// };
-
 // Function to generate styles dynamically and cache them
 const getCachedStyle = (speciesId, spreadCategory, isPublic) => {
   const spreadRadiusMap = {
