@@ -523,6 +523,24 @@ app.get('/api/conditions', async (req, res) => {
   }
 });
 
+//style cahe for all styles
+app.get('/api/styles', async (req, res) => {
+  try {
+    // Query to get unique combinations of species_id, spread_category, and is_public
+    const result = await pool.query(`
+      SELECT DISTINCT species_id, spread_category, is_public
+      FROM tree_data.tree
+      WHERE spread_category IS NOT NULL
+    `);
+    
+    // Respond with the result as JSON
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching style combinations:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 
 // Listen on PORT

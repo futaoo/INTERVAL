@@ -17,7 +17,7 @@ import LayerGroup from 'ol/layer/Group';
 import OSM from 'ol/source/OSM';
 import XYZ from 'ol/source/XYZ';
 import VectorTileSource from 'ol/source/VectorTile';
-import { Fill, Stroke, Style, Text, Circle as CircleStyle } from 'ol/style';
+import { Fill, Stroke, Style, Text, Circle as CircleStyle, RegularShape } from 'ol/style';
 import {asArray} from 'ol/color';
 import { useTreeStore } from '@/stores/statisticsStore';
 import { storeToRefs } from 'pinia';
@@ -42,32 +42,100 @@ const{inclTreeIds} = storeToRefs(treeStore);
 
 const styleCache = {};
 
+// // Function to generate styles dynamically and cache them
+// const getCachedStyle = (speciesId, actualSpread, isPublic) => {
+//   // Fallback to default values if properties are missing
+//   const spread = actualSpread ? actualSpread / 100 : 5; // Default radius is 10 if `actual_spread` is not provided
+//   const color = speciesColors[speciesId] || '#00FF00'; // Default color is green if not found
+
+//   // Use speciesId, spread, and isPublic as keys for the cache
+//   const cacheKey = `${speciesId}-${spread}-${isPublic}`;
+
+//   // Return the cached style if it exists, otherwise create and store it
+//   if (!styleCache[cacheKey]) {
+//     const rgbaColor = asArray(color);
+//     rgbaColor[3] = 0.8; // Adjust color to add transparency (opacity)
+
+//     // Check if the tree is public or private
+//     const shapeStyle = isPublic
+//       ? new CircleStyle({
+//           radius: spread, // Dynamic radius based on `actual_spread`
+//           fill: new Fill({ color: rgbaColor }),
+//           stroke: new Stroke({ color: rgbaColor, width: 1 }),
+//         })
+//       : new RegularShape({
+//           points: 3, // Triangle
+//           radius: spread + 5, // Adjust the triangle size
+//           angle: 0, // Orientation of the triangle
+//           fill: new Fill({ color: rgbaColor }),
+//           stroke: new Stroke({ color: rgbaColor, width: 1 }),
+//         });
+
+//     styleCache[cacheKey] = new Style({
+//       image: shapeStyle,
+//     });
+//   }
+
+//   return styleCache[cacheKey];
+// };
+
 // Function to generate styles dynamically and cache them
-const getCachedStyle = (speciesId, actualSpread) => {
-  // Fallback to default values if properties are missing
-  const spread = actualSpread ? actualSpread / 100 : 5; // Default radius is 10 if `actual_spread` is not provided
+const getCachedStyle = (speciesId, spreadCategory, isPublic) => {
+  const spreadRadiusMap = {
+    'Up to 300 cm': 3,
+    '301 - 600 cm': 6,
+    '601 - 900 cm': 9,
+    '901 - 1200 cm': 12,
+    'More than 1200 cm': 15,
+    'Unknown': 2, // Default radius for unknown spread category
+  };
+
+  const radius = spreadRadiusMap[spreadCategory] || 2; // Fallback to 2 for unknown category
   const color = speciesColors[speciesId] || '#00FF00'; // Default color is green if not found
 
-
-  // Use speciesId and spread as keys for the cache
-  const cacheKey = `${speciesId}-${spread}`;
-
-  // Return the cached style if it exists, otherwise create and store it
+  const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`;
   if (!styleCache[cacheKey]) {
     const rgbaColor = asArray(color);
-    rgbaColor[3]=0.8; // Adjust color to add transparency (opacity)
+    rgbaColor[3] = 0.8; // Adjust color opacity
+
+    const shapeStyle = isPublic
+      ? new CircleStyle({
+          radius: radius,
+          fill: new Fill({ color: rgbaColor }),
+          stroke: new Stroke({ color: rgbaColor, width: 1 }),
+        })
+      : new RegularShape({
+          points: 3,
+          radius: radius + 2, // Adjust size for private trees
+          angle: 0,
+          fill: new Fill({ color: rgbaColor }),
+          stroke: new Stroke({ color: rgbaColor, width: 1 }),
+        });
 
     styleCache[cacheKey] = new Style({
-      image: new CircleStyle({
-        radius: spread, // Dynamic radius based on `actual_spread`
-        fill: new Fill({ color: rgbaColor }),
-        stroke: new Stroke({ color: rgbaColor, width: 1 }),
-      }),
+      image: shapeStyle,
     });
   }
-
   return styleCache[cacheKey];
 };
+
+// Fetch unique style combinations and initialize style cache
+const initializeStyleCache = async () => {
+  try {
+    const response = await fetch('http://localhost:3001/api/styles');
+    const styleData = await response.json();
+
+    styleData.forEach(({ species_id, spread_category, is_public }) => {
+      // Prepopulate the style cache for all combinations
+      getCachedStyle(species_id, spread_category, is_public);
+    });
+
+    console.log('Style cache initialized:', styleCache);
+  } catch (error) {
+    console.error('Error initializing style cache:', error);
+  }
+};
+
 
 
 
@@ -108,7 +176,10 @@ const electoralStyle = (feature) => {
 }
 
 
-onMounted(() => {
+onMounted(async() => {
+
+  await initializeStyleCache();
+  console.log('Map and style cache initialization complete.');
 
   const osm = new LayerTile({
     title: 'Street',
@@ -193,10 +264,20 @@ onMounted(() => {
     style: (feature) => {
       // Retrieve properties from the feature
       const speciesId = feature.get('species_id');
-      const actualSpread = feature.get('actual_spread');
+      const spreadCategory = feature.get('spread_category');
+      const isPublic = feature.get('is_public');
+
+      // Use the pre-loaded style cache
+      const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`;
 
         // Call `getCachedStyle` to get the appropriate style, including exclusion check
-      return getCachedStyle(speciesId, actualSpread);
+      return styleCache[cacheKey] || new Style({
+        image: new CircleStyle({
+          radius: 2, // Default radius if not found in cache
+          fill: new Fill({ color: '#999' }),
+          stroke: new Stroke({ color: '#000', width: 1 }),
+        }),
+      });
     },
     minZoom: 15,
   });
@@ -211,14 +292,23 @@ onMounted(() => {
     // Refresh the style of the tree layer when `excludedTreeIds` changes
     treeLayer.setStyle((feature) => {
       const speciesId = feature.get('species_id');
-      const actualSpread = feature.get('actual_spread');
+      const spreadCategory = feature.get('spread_category');
       const treeId = feature.get('tree_id');
+      const isPublic = feature.get('is_public');
+
+      // Use the pre-loaded style cache
+      const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`;
 
       if(newIds.includes(treeId)){
         // Call `getCachedStyle` to get the appropriate style, including exclusion check
-        return getCachedStyle(speciesId, actualSpread);
+        return styleCache[cacheKey] || new Style({
+          image: new CircleStyle({
+            radius: 2, // Default radius if not found in cache
+            fill: new Fill({ color: '#999' }),
+            stroke: new Stroke({ color: '#000', width: 1 }),
+          }),
+        });
       }
-
     });
   });
 
@@ -237,6 +327,8 @@ onMounted(() => {
     }
   });
 
+  let selectedTreeId = null;  // Store the currently selected feature
+
   // Add a click event listener specifically for the electoral layer
   map.value.on('singleclick', function (evt) {
     const pixel = map.value.getEventPixel(evt.originalEvent);
@@ -246,6 +338,7 @@ onMounted(() => {
       const properties = feature.getProperties(); // Get feature properties
       const electoralId = properties.ogc_fid; // Get the unique ID
       const treeId = properties.tree_id;
+
 
       if (electoralId) {
         // Navigate to the ElectoralStatistics route
@@ -259,6 +352,32 @@ onMounted(() => {
         router.push({ name: 'ElectoralStatistics', params: { id: electoralId } });
       }
       if(treeId){
+
+        // If a tree was clicked, store the treeId
+        selectedTreeId = treeId;
+        // Use the layer style function to handle style changes
+        treeLayer.setStyle((feature) => {
+          const featureTreeId = feature.get('tree_id');
+          const speciesId = feature.get('species_id');
+          const spreadCategory = feature.get('spread_category');
+          const isPublic = feature.get('is_public')
+
+          // Use the pre-loaded style cache
+          const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`
+          
+          // Check if the current feature is the selected one
+          const isSelected = selectedTreeId === featureTreeId;
+
+          // Return a different style if the feature is selected
+          return isSelected ? getHighlightedStyle(speciesId, spreadCategory, isPublic) : styleCache[cacheKey];
+        });
+
+        // Zoom to the selected tree with smooth animation
+        map.value.getView().animate({
+          center: evt.coordinate,
+          zoom: 18,
+          duration: 500  // Smooth animation (500ms)
+        });
         // Navigate to the TreeInfo route
         router.push({ name: 'TreeInfo', params: { treeId: treeId } });
       }
@@ -268,6 +387,31 @@ onMounted(() => {
   mapStore.setMapInstance(map);
 
 });
+
+// Function to return the highlighted style for the selected tree
+function getHighlightedStyle(speciesId, spreadCategory, isPublic) {
+  // Use the pre-loaded style cache
+  const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`
+  const baseStyle = styleCache[cacheKey];
+  console.log('basestyle', baseStyle);
+  const fillColor = baseStyle.getImage().getFill().getColor();  // Keep the same fill color as the cached style
+
+  return new Style({
+    image: isPublic  
+      ? new CircleStyle({
+          radius: baseStyle.getImage().getRadius() + 2,  // Increase the size of the circle
+          fill: new Fill({ color: fillColor }),  // Use the same fill color
+          stroke: new Stroke({ color: '#654321', width: 5 })  // Add a red border for highlighting
+        })
+      : new RegularShape({
+          points: 3,
+          radius: baseStyle.getImage().getRadius() + 2,  // Increase the size of the triangle
+          fill: new Fill({ color: fillColor }),
+          stroke: new Stroke({ color: '#654321', width: 5 }),  // Add a red border for highlighting
+          angle: 0,
+        }),
+  });
+}
 </script>
 
 <style>
