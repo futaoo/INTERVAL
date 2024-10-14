@@ -301,11 +301,11 @@ app.post('/api/trees', async (req, res) => {
           ELSE 0 
         END AS private_percentage,
         CASE WHEN COUNT(t.tree_id) > 0 
-          THEN COUNT(DISTINCT CASE WHEN s.is_native = true THEN 1 END) * 100 / NULLIF(COUNT(t.tree_id), 0)
+          THEN COUNT(t.tree_id) FILTER (WHERE s.is_native = TRUE) * 100 / NULLIF(COUNT(t.tree_id), 0)
           ELSE 0 
         END AS native_percentage,
         CASE WHEN COUNT(t.tree_id) > 0 
-          THEN COUNT(DISTINCT CASE WHEN s.is_native = false THEN 1 END) * 100 / NULLIF(COUNT(t.tree_id), 0)
+          THEN COUNT(t.tree_id) FILTER (WHERE s.is_native = FALSE) * 100 / NULLIF(COUNT(t.tree_id), 0)
           ELSE 0 
         END AS non_native_percentage
       FROM tree_data.tree t

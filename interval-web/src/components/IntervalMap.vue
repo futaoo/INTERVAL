@@ -173,7 +173,7 @@ onMounted(async() => {
     layers: [baseMaps],
     view: new ol.View({
       center: fromLonLat([-6.26031, 53.349805]), // Center at Dublin
-      zoom: 13,
+      zoom: 11,
     }),
     renderer:'webgl',
     controls: []
@@ -212,7 +212,7 @@ onMounted(async() => {
       url: 'http://localhost:3000/electoral/{z}/{x}/{y}', 
     }),
     style: electoralStyle,
-    maxZoom: 14,
+    maxZoom: 16.5,
   });
 
   map.value.addLayer(electoralLayer);
@@ -242,7 +242,7 @@ onMounted(async() => {
         }),
       });
     },
-    minZoom: 15,
+    minZoom: 16.99,
   });
 
 
@@ -308,7 +308,7 @@ onMounted(async() => {
         // If electoralId is present, zoom in to the clicked location at zoom level 16
         map.value.getView().animate({
           center: evt.coordinate,
-          zoom: 16,
+          zoom: 17,
           duration: 500  // Smooth animation (500ms)
         });
 
@@ -355,8 +355,18 @@ onMounted(async() => {
 function getHighlightedStyle(speciesId, spreadCategory, isPublic) {
   // Use the pre-loaded style cache
   const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`
-  const baseStyle = styleCache[cacheKey];
-  console.log('basestyle', baseStyle);
+  var baseStyle = styleCache[cacheKey];
+  // console.log('basestyle', baseStyle);
+  const undefinedStyle = new Style({
+          image: new CircleStyle({
+            radius: 2, // Default radius if not found in cache
+            fill: new Fill({ color: '#999' }),
+            stroke: new Stroke({ color: '#000', width: 1 }),
+          }),
+        });
+
+  baseStyle = baseStyle? baseStyle : undefinedStyle;
+
   const fillColor = baseStyle.getImage().getFill().getColor();  // Keep the same fill color as the cached style
 
   return new Style({
