@@ -8,26 +8,28 @@
         <h2 class="species-name">{{ tree.species.speciesScientificName }}</h2>
         <img src="@/assets/species/testspecies.webp" alt="test species" class="species-img" />
         <table>
-          <tr>
-            <th>Closest Street Address</th>
-            <td>{{ tree.closestAddress }}</td>
-          </tr>
-          <tr>
-            <th>Height (cm)</th>
-            <td>{{ tree.height }}</td>
-          </tr>
-          <tr>
-            <th>Trunk Diameter (cm)</th>
-            <td>{{ tree.trunkDiameter }}</td>
-          </tr>
-          <tr>
-            <th>Canopy Spread (cm)</th>
-            <td>{{ tree.canopySpread }}</td>
-          </tr>
-          <tr>
-            <th>Condition</th>
-            <td>{{ tree.condition }}</td>
-          </tr>
+          <tbody>
+            <tr>
+              <th>Closest Street Address</th>
+              <td>{{ tree.closestAddress }}</td>
+            </tr>
+            <tr>
+              <th>Height (cm)</th>
+              <td>{{ tree.height }}</td>
+            </tr>
+            <tr>
+              <th>Trunk Diameter (cm)</th>
+              <td>{{ tree.trunkDiameter }}</td>
+            </tr>
+            <tr>
+              <th>Canopy Spread (cm)</th>
+              <td>{{ tree.canopySpread }}</td>
+            </tr>
+            <tr>
+              <th>Condition</th>
+              <td>{{ tree.condition }}</td>
+            </tr>
+          </tbody>
         </table>
         <img src="../assets/streetview.png" alt="api not working" class="image">
       </div>
@@ -38,11 +40,13 @@
       <h2>Ecological Benefits</h2>
       <div class="table-details">
         <table>
-          <!-- Sort the ecological benefits array by benefit name before rendering -->
-          <tr v-for="(benefit, index) in sortedEcologicalBenefits" :key="index">
-            <th>{{ benefit.name }}</th>
-            <td>{{ benefit.value }} {{ benefit.unit }} (worth of {{ benefit.monetary }}$)</td>
-          </tr>
+          <tbody>
+            <!-- Sort the ecological benefits array by benefit name before rendering -->
+            <tr v-for="(benefit, index) in sortedEcologicalBenefits" :key="index">
+              <th>{{ benefit.name }}</th>
+              <td>{{ benefit.value }} {{ benefit.unit }} (worth of {{ benefit.monetary }}$)</td>
+            </tr>
+          </tbody>
         </table>
         <p><strong>Total Monetary Value: {{ totalMonetaryValue }}$</strong></p>
       </div>

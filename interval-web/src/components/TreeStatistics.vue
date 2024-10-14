@@ -14,30 +14,32 @@
           <h2 >Tree Species Composition</h2>
         </div>
         <table class="stats-summary-table">
-          <tr>
-            <th>Trees on Map:</th>
-            <td>{{ treeStatistics.totalTrees }}</td>
-          </tr>
-          <tr>
-            <th>Tree Species on Map</th>
-            <td>{{ treeStatistics.totalSpecies }}</td>
-          </tr>
-          <tr>
-            <th>Issues Reported:</th>
-            <td>{{ treeStatistics.totalIssues }}</td>
-          </tr>
-          <tr>
-            <th>Private Trees:</th>
-            <td>{{ treeStatistics.privatePercentage }} %</td>
-          </tr>
-          <tr>
-            <th>Non-Native Trees:</th>
-            <td>{{ treeStatistics.nonNativePercentage }} %</td>
-          </tr>
-          <tr>
-            <th>Most Common Species:</th>
-            <td>{{ treeStatistics.mostCommonSpecies }}</td>
-          </tr>
+          <tbody>
+            <tr>
+              <th>Trees on Map:</th>
+              <td>{{ treeStatistics.totalTrees }}</td>
+            </tr>
+            <tr>
+              <th>Tree Species on Map</th>
+              <td>{{ treeStatistics.totalSpecies }}</td>
+            </tr>
+            <tr>
+              <th>Issues Reported:</th>
+              <td>{{ treeStatistics.totalIssues }}</td>
+            </tr>
+            <tr>
+              <th>Private Trees:</th>
+              <td>{{ treeStatistics.privatePercentage }} %</td>
+            </tr>
+            <tr>
+              <th>Non-Native Trees:</th>
+              <td>{{ treeStatistics.nonNativePercentage }} %</td>
+            </tr>
+            <tr>
+              <th>Most Common Species:</th>
+              <td>{{ treeStatistics.mostCommonSpecies }}</td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </section>
@@ -47,10 +49,12 @@
       <h2>Ecological Benefits</h2>
       <div class="table-details">
         <table class="benefits-table">
-          <tr v-for="(benefit, index) in treeStatistics.ecologicalBenefits" :key="index">
-            <th>Total {{ benefit.name }}:</th>
-            <td>{{ benefit.totalValue }} {{ benefit.unit }}</td>
-          </tr>
+          <tbody>
+            <tr v-for="(benefit, index) in treeStatistics.ecologicalBenefits" :key="index">
+              <th>Total {{ benefit.name }}:</th>
+              <td>{{ benefit.totalValue }} {{ benefit.unit }}</td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </section>
