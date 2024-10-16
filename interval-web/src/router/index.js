@@ -3,6 +3,7 @@ import InfoPage from '../components/InfoPage.vue';
 import TreeInfo from '../components/TreeInfo.vue';
 import TreeStatistics from '@/components/TreeStatistics.vue';
 import FilterStatistics from '@/components/FilterStatistics.vue';
+import TreeRecord from '@/components/TreeRecord.vue';
 
 const routes = [
 
@@ -36,7 +37,12 @@ const routes = [
         path: 'filter',
         name: 'FilterStatistics',
         component: FilterStatistics,
-      }         
+      },
+      {
+        path: ':treeId/records',
+        name: 'TreeRecord',
+        component: TreeRecord,
+      }        
     ]
   }
 ];

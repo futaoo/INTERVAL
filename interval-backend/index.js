@@ -541,7 +541,27 @@ app.get('/api/styles', async (req, res) => {
   }
 });
 
+// POST route to create a new tree record
+app.post('/api/trees/:treeId/records', async (req, res) => {
+  const { treeId } = req.params;
+  const { recordType, recordDescription, recordDate } = req.body; // Fields to create
 
+  try {
+    // Insert a new record into the database
+    const newRecord = await pool.query(
+      `INSERT INTO tree_data.tree_record (tree_id, record_type, record_description, record_date) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING *`,
+      [treeId, recordType, recordDescription, recordDate]
+    );
+
+    res.status(201).json({ message: 'Record created successfully', record: newRecord.rows[0] });
+
+  } catch (error) {
+    console.error('Error creating tree record:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Listen on PORT
 const port = process.env.PORT || 3001;

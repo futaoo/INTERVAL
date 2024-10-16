@@ -2,7 +2,7 @@
   <!-- Tree Info Section -->
   <div v-if="!isCollapsed && tree" class="info-content">
 
-    <section class="info-section tree-info-section">
+    <div class="info-section tree-info-section">
       <h1>{{ tree.species.speciesCommonName }}</h1>
       <div class="table-details">
         <h2 class="species-name">{{ tree.species.speciesScientificName }}</h2>
@@ -33,10 +33,10 @@
         </table>
         <img src="../assets/streetview.png" alt="api not working" class="image">
       </div>
-    </section> 
+    </div> 
 
     <!-- Ecological Benefits Section -->
-    <section class="info-section ecological-benefits-section">
+    <div class="info-section ecological-benefits-section">
       <h2>Ecological Benefits</h2>
       <div class="table-details">
         <table>
@@ -50,10 +50,10 @@
         </table>
         <p><strong>Total Monetary Value: {{ totalMonetaryValue }}$</strong></p>
       </div>
-    </section>
+    </div>
 
     <!-- Record of Activities/Issues Section -->
-    <section v-if="tree.inspections.length > 0" class="info-section record-section">
+    <div v-if="tree.inspections.length > 0" class="info-section record-section">
       <h2>Record of Activities/Issues</h2>
       <div class="table-details">
         <table>
@@ -73,22 +73,30 @@
           </tbody>
         </table>
       </div>
-    </section> 
+    </div> 
+
+     <!-- Submit Record Button -->
+    <div class="info-section submit-record-section">
+      <button class="submit-btn" @click="goToEditRecord">Submit Record</button>
+    </div>
+
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref, watch, computed} from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 
 const route = useRoute(); // Get the current route
+const router = useRouter();
 
 const props = defineProps({
   isCollapsed: Boolean,
 })
 
 const tree = ref(null);
+
 
 
 // Computed property to sort the ecological benefits by name
@@ -114,11 +122,29 @@ const fetchTreeData = async (treeId) => {
   try {
     const response = await fetch(`http://localhost:3001/api/trees/${treeId}`);
     const treeData = await response.json();
+
+    // Sort activities by date (most recent first), format the date to 'yyyy-mm-dd', and select the top 10
+    const sortedInspections = treeData.inspections
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 10)
+      .map(activity => ({
+        ...activity,
+        date: new Date(activity.date).toISOString().slice(0, 10) // Format to 'yyyy-mm-dd'
+    }));
+
+    treeData.inspections = sortedInspections;
+
     tree.value = treeData; // Set the fetched data to the tree ref
   } catch (error) {
     console.error('Error fetching tree data:', error);
   }
 };
+
+//Function to load the record page of the tree
+const goToEditRecord = () => {
+  router.push({ name: 'TreeRecord', params: { treeId: route.params.treeId } });
+};
+
 
 // onMounted: When the component is mounted, check if tree data is passed
 onMounted(() => {
@@ -198,4 +224,20 @@ th, td {
   max-width: 100px;
   height: auto;
 }
+
+.submit-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  text-align: center;
+}
+
+.submit-btn:hover {
+  background-color: #45a049;
+}
+
 </style>

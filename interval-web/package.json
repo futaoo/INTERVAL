@@ -21,6 +21,7 @@
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-router": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "@vuepic/vue-datepicker": "^9.0.3",
     "chart.js": "^4.4.4",
     "esri-leaflet": "^3.0.12",
     "floating-vue": "^5.2.2",
