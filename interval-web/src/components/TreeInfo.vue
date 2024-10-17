@@ -99,6 +99,7 @@ const tree = ref(null);
 
 
 
+
 // Computed property to sort the ecological benefits by name
 const sortedEcologicalBenefits = computed(() => {
   return tree.value.ecologicalBenefits.sort((a, b) => {
@@ -160,6 +161,7 @@ watch(() => route.params.treeId, (newTreeId) => {
     fetchTreeData(newTreeId); // Refetch the tree data when the treeId changes
   }
 });
+
 
 
 </script>

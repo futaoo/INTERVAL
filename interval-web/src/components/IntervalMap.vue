@@ -12,160 +12,30 @@ import * as ol from 'ol';
 import { fromLonLat } from 'ol/proj';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import MVT from 'ol/format/MVT';
-import LayerTile from 'ol/layer/Tile';
-import LayerGroup from 'ol/layer/Group';
-import OSM from 'ol/source/OSM';
-import XYZ from 'ol/source/XYZ';
 import VectorTileSource from 'ol/source/VectorTile';
-import { Fill, Stroke, Style, Text, Circle as CircleStyle, RegularShape } from 'ol/style';
-import {asArray} from 'ol/color';
 import { useTreeStore } from '@/stores/statisticsStore';
 import { storeToRefs } from 'pinia';
 import { useMapStore } from '@/stores/mapStore';
-import {Zoom} from 'ol/control';
 import 'ol-layerswitcher/dist/ol-layerswitcher.css';
-import LayerSwitcher from 'ol-layerswitcher';
-
-
-
+import { electoralStyle, initializeStyleCache, treeStyle, selectedTreeStyle, filteredTreeStyle} from '@/utils/MapLayerStyles';
+import { createZoomControl, layerSwitcher } from '@/utils/MapControllers';
+import { baseMaps} from '@/utils/MapLayers';
 
 
 
 const router = useRouter();
-const speciesColors = inject('speciesColors'); // Inject global color map
 const map = shallowRef(null); // A ref for the OpenLayers map
 const treeStore = useTreeStore();
 const mapStore = useMapStore()
-
 const{inclTreeIds} = storeToRefs(treeStore);
 
-
 const styleCache = {};
-
-// Function to generate styles dynamically and cache them
-const getCachedStyle = (speciesId, spreadCategory, isPublic) => {
-  const spreadRadiusMap = {
-    'Up to 300 cm': 3,
-    '301 - 600 cm': 6,
-    '601 - 900 cm': 9,
-    '901 - 1200 cm': 12,
-    'More than 1200 cm': 15,
-    'Unknown': 2, // Default radius for unknown spread category
-  };
-
-  const radius = spreadRadiusMap[spreadCategory] || 2; // Fallback to 2 for unknown category
-  const color = speciesColors[speciesId] || '#00FF00'; // Default color is green if not found
-
-  const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`;
-  if (!styleCache[cacheKey]) {
-    const rgbaColor = asArray(color);
-    rgbaColor[3] = 0.8; // Adjust color opacity
-
-    const shapeStyle = isPublic
-      ? new CircleStyle({
-          radius: radius,
-          fill: new Fill({ color: rgbaColor }),
-          stroke: new Stroke({ color: rgbaColor, width: 1 }),
-        })
-      : new RegularShape({
-          points: 3,
-          radius: radius + 2, // Adjust size for private trees
-          angle: 0,
-          fill: new Fill({ color: rgbaColor }),
-          stroke: new Stroke({ color: rgbaColor, width: 1 }),
-        });
-
-    styleCache[cacheKey] = new Style({
-      image: shapeStyle,
-    });
-  }
-  return styleCache[cacheKey];
-};
-
-// Fetch unique style combinations and initialize style cache
-const initializeStyleCache = async () => {
-  try {
-    const response = await fetch('http://localhost:3001/api/styles');
-    const styleData = await response.json();
-
-    styleData.forEach(({ species_id, spread_category, is_public }) => {
-      // Prepopulate the style cache for all combinations
-      getCachedStyle(species_id, spread_category, is_public);
-    });
-
-    console.log('Style cache initialized:', styleCache);
-  } catch (error) {
-    console.error('Error initializing style cache:', error);
-  }
-};
-
-
-
-
-const electoralStyle = (feature) => {
-  // Define base styles for the polygon
-  const baseStyle = new Style({
-    stroke: new Stroke({
-      color: 'black',
-      width: 2,
-    }),
-    fill: new Fill({
-      color: 'rgba(0, 100, 0, 0.6)',
-    }),
-  });
-
-  // Add text style for labels using the 'english' property
-  const labelText = feature.get('english');
-  if (labelText) {
-    // If the `english` property exists, add a text label
-    baseStyle.setText(
-      new Text({
-        font: 'bold 12px Calibri,sans-serif',
-        text: labelText,         // Set the label text
-        fill: new Fill({
-          color: '#000',         // Text color
-        }),
-        stroke: new Stroke({
-          color: '#fff',         // Add a white outline for readability
-          width: 3,
-        }),
-        overflow: true,          // Allow text to overflow if feature is small
-        placement: 'point',      // Place the text at the centroid of the feature
-      })
-    );
-  }
-
-  return baseStyle;
-}
 
 
 onMounted(async() => {
 
-  await initializeStyleCache();
+  await initializeStyleCache(styleCache);
   console.log('Map and style cache initialization complete.');
-
-  const osm = new LayerTile({
-    title: 'Street',
-    type: 'base',
-    visible: true,
-    source: new OSM()
-  });
-
-  const carto = new LayerTile({
-    title: 'Light',
-    type: 'base',
-    visible: true,
-    source: new XYZ({
-      url: 'https://{a-d}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-      attributions: '&copy; <a href="https://www.openstreetmap.org/copyright"></a> contributors',
-    }),
-  });
-
-  // Create a LayerGroup for base maps
-  const baseMaps = new LayerGroup({
-    title: 'Base maps',
-    layers: [osm, carto]
-  });
 
   // Create OpenLayers map
   map.value = new ol.Map({
@@ -178,32 +48,6 @@ onMounted(async() => {
     renderer:'webgl',
     controls: []
   });
-
-  // Initialize the LayerSwitcher control
-  const layerSwitcher = new LayerSwitcher({
-    reverse: true,
-    groupSelectStyle: 'group',
-    activationMode: 'click',
-  });
-
-
-  map.value.addControl(layerSwitcher);
-
-  // Create a new Zoom control
-  const zoomControl = new Zoom();
-
-  // Dynamically update the Zoom control's position
-  // Access the zoom control's element and modify its style using JavaScript
-  map.value.addControl(zoomControl);
-  const zoomElement = zoomControl.element;
-
-  // Set position styles dynamically
-  zoomElement.style.position = 'absolute';
-  zoomElement.style.right = '10px';  // Position from the right
-  zoomElement.style.bottom = '30px'; // Position from the bottom
-  zoomElement.style.left = 'auto';   // Override left position
-  zoomElement.style.top = 'auto';    // Override top position
-
 
   // Create and add a vector tile layer for electoral boundaries
   const electoralLayer = new VectorTileLayer({
@@ -225,28 +69,19 @@ onMounted(async() => {
       url: 'http://localhost:3000/tree/{z}/{x}/{y}', 
     }),
     style: (feature) => {
-      // Retrieve properties from the feature
-      const speciesId = feature.get('species_id');
-      const spreadCategory = feature.get('spread_category');
-      const isPublic = feature.get('is_public');
-
-      // Use the pre-loaded style cache
-      const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`;
-
-        // Call `getCachedStyle` to get the appropriate style, including exclusion check
-      return styleCache[cacheKey] || new Style({
-        image: new CircleStyle({
-          radius: 2, // Default radius if not found in cache
-          fill: new Fill({ color: '#999' }),
-          stroke: new Stroke({ color: '#000', width: 1 }),
-        }),
-      });
+      return treeStyle(feature, styleCache);
     },
     minZoom: 16.99,
+    title: 'tree-layer'
   });
 
 
   map.value.addLayer(treeLayer);
+
+
+  //add map controllers 
+  map.value.addControl(layerSwitcher);
+  map.value.addControl(createZoomControl());
 
   
 
@@ -254,24 +89,7 @@ onMounted(async() => {
   watch(inclTreeIds, (newIds) => {
     // Refresh the style of the tree layer when `excludedTreeIds` changes
     treeLayer.setStyle((feature) => {
-      const speciesId = feature.get('species_id');
-      const spreadCategory = feature.get('spread_category');
-      const treeId = feature.get('tree_id');
-      const isPublic = feature.get('is_public');
-
-      // Use the pre-loaded style cache
-      const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`;
-
-      if(newIds.includes(treeId)){
-        // Call `getCachedStyle` to get the appropriate style, including exclusion check
-        return styleCache[cacheKey] || new Style({
-          image: new CircleStyle({
-            radius: 2, // Default radius if not found in cache
-            fill: new Fill({ color: '#999' }),
-            stroke: new Stroke({ color: '#000', width: 1 }),
-          }),
-        });
-      }
+      return filteredTreeStyle(feature, newIds, styleCache)
     });
   });
 
@@ -320,19 +138,7 @@ onMounted(async() => {
         selectedTreeId = treeId;
         // Use the layer style function to handle style changes
         treeLayer.setStyle((feature) => {
-          const featureTreeId = feature.get('tree_id');
-          const speciesId = feature.get('species_id');
-          const spreadCategory = feature.get('spread_category');
-          const isPublic = feature.get('is_public')
-
-          // Use the pre-loaded style cache
-          const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`
-          
-          // Check if the current feature is the selected one
-          const isSelected = selectedTreeId === featureTreeId;
-
-          // Return a different style if the feature is selected
-          return isSelected ? getHighlightedStyle(speciesId, spreadCategory, isPublic) : styleCache[cacheKey];
+          return selectedTreeStyle(feature, selectedTreeId, styleCache);
         });
 
         // Zoom to the selected tree with smooth animation
@@ -351,40 +157,6 @@ onMounted(async() => {
 
 });
 
-// Function to return the highlighted style for the selected tree
-function getHighlightedStyle(speciesId, spreadCategory, isPublic) {
-  // Use the pre-loaded style cache
-  const cacheKey = `${speciesId}-${spreadCategory}-${isPublic}`
-  var baseStyle = styleCache[cacheKey];
-  // console.log('basestyle', baseStyle);
-  const undefinedStyle = new Style({
-          image: new CircleStyle({
-            radius: 2, // Default radius if not found in cache
-            fill: new Fill({ color: '#999' }),
-            stroke: new Stroke({ color: '#000', width: 1 }),
-          }),
-        });
-
-  baseStyle = baseStyle? baseStyle : undefinedStyle;
-
-  const fillColor = baseStyle.getImage().getFill().getColor();  // Keep the same fill color as the cached style
-
-  return new Style({
-    image: isPublic  
-      ? new CircleStyle({
-          radius: baseStyle.getImage().getRadius() + 2,  // Increase the size of the circle
-          fill: new Fill({ color: fillColor }),  // Use the same fill color
-          stroke: new Stroke({ color: '#654321', width: 5 })  // Add a red border for highlighting
-        })
-      : new RegularShape({
-          points: 3,
-          radius: baseStyle.getImage().getRadius() + 2,  // Increase the size of the triangle
-          fill: new Fill({ color: fillColor }),
-          stroke: new Stroke({ color: '#654321', width: 5 }),  // Add a red border for highlighting
-          angle: 0,
-        }),
-  });
-}
 </script>
 
 <style>

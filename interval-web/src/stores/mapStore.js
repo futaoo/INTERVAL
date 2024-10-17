@@ -4,6 +4,7 @@ import { defineStore } from 'pinia';
 export const useMapStore = defineStore('mapStore', {
   state: () => ({
     mapInstance: null,
+    styleCache: null,
   }),
   actions: {
     setMapInstance(map) {
@@ -11,6 +12,12 @@ export const useMapStore = defineStore('mapStore', {
     },
     getMapInstance() {
       return this.mapInstance;
+    },
+    setStyleCahe(styleCache){
+      this.styleCache = styleCache;
+    },
+    getStyleCache(){
+      return this.styleCache;
     }
   },
 });
