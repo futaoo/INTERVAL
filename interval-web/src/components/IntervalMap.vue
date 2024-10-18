@@ -63,6 +63,7 @@ onMounted(async() => {
     }),
     style: electoralStyle,
     maxZoom: 16.5,
+    title: 'Electoral Divisions'
   });
 
   map.value.addLayer(electoralLayer);
@@ -78,7 +79,7 @@ onMounted(async() => {
       return treeStyle(feature, styleCache);
     },
     minZoom: 16.99,
-    title: 'tree-layer'
+    title: 'Trees'
   });
 
 
