@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import { onMounted, shallowRef, inject, watch} from 'vue';
+import { onMounted, shallowRef, inject, watch, ref} from 'vue';
 import { useRouter } from 'vue-router';
 import 'ol/ol.css';
 import * as ol from 'ol';
@@ -13,21 +13,27 @@ import { fromLonLat } from 'ol/proj';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import MVT from 'ol/format/MVT';
 import VectorTileSource from 'ol/source/VectorTile';
-import { useTreeStore } from '@/stores/statisticsStore';
+import { useTreeInfoStore, useTreeStore } from '@/stores/statisticsStore';
 import { storeToRefs } from 'pinia';
 import { useMapStore } from '@/stores/mapStore';
 import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 import { electoralStyle, initializeStyleCache, treeStyle, selectedTreeStyle, filteredTreeStyle} from '@/utils/MapLayerStyles';
 import { createZoomControl, layerSwitcher } from '@/utils/MapControllers';
 import { baseMaps} from '@/utils/MapLayers';
+import WKT from 'ol/format/WKT';
 
 
 
 const router = useRouter();
 const map = shallowRef(null); // A ref for the OpenLayers map
 const treeStore = useTreeStore();
-const mapStore = useMapStore()
+const mapStore = useMapStore();
+const treeInfoStore =  useTreeInfoStore()
+
 const{inclTreeIds} = storeToRefs(treeStore);
+const {tree} = storeToRefs(treeInfoStore);
+
+let clickedTree = false;
 
 const styleCache = {};
 
@@ -93,6 +99,33 @@ onMounted(async() => {
     });
   });
 
+  // zoom into a tree from a direct access from url
+  watch(tree, (newTree) => {
+    if(newTree && !clickedTree){
+      console.log('find a new tree from url', newTree.treeId)
+      // Refresh the style of the tree layer when `excludedTreeIds` changes
+      treeLayer.setStyle((feature) => {
+        return selectedTreeStyle(feature, newTree.treeId, styleCache)
+      });
+
+      const format = new WKT();
+      const geometry = format.readGeometry(newTree.geomWKT, {
+        dataProjection: 'EPSG:4326', // Adjust data is in a different projection
+        featureProjection: map.value.getView().getProjection() // Map's current projection
+      });
+
+      // Get the point coordinates from the geometry
+      const coordinates = geometry.getCoordinates();
+      // Zoom to the point with smooth animation
+      map.value.getView().animate({
+        center: coordinates,
+        zoom: 18,  // Set the desired zoom level
+        duration: 1000 // Smooth animation (500ms)
+      }); 
+    }
+  }, { immediate: true });
+  
+
   // Mouse move event listener for changing cursor style
   map.value.on('pointermove', function (evt) {
     const pixel = map.value.getEventPixel(evt.originalEvent);
@@ -134,8 +167,11 @@ onMounted(async() => {
       }
       if(treeId){
 
+        clickedTree=true;
+
         // If a tree was clicked, store the treeId
         selectedTreeId = treeId;
+
         // Use the layer style function to handle style changes
         treeLayer.setStyle((feature) => {
           return selectedTreeStyle(feature, selectedTreeId, styleCache);

@@ -42,7 +42,7 @@
         <table>
           <tbody>
             <!-- Sort the ecological benefits array by benefit name before rendering -->
-            <tr v-for="(benefit, index) in sortedEcologicalBenefits" :key="index">
+            <tr v-for="(benefit, index) in tree.ecologicalBenefits" :key="index">
               <th>{{ benefit.name }}</th>
               <td>{{ benefit.value }} {{ benefit.unit }} (worth of {{ benefit.monetary }}$)</td>
             </tr>
@@ -84,62 +84,25 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch, computed} from 'vue';
+import { useTreeInfoStore } from '@/stores/statisticsStore';
+import { storeToRefs } from 'pinia';
+import { onMounted, watch} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+
 
 
 const route = useRoute(); // Get the current route
 const router = useRouter();
+const treeInfoStore = useTreeInfoStore();
+
+const { tree } = storeToRefs(treeInfoStore)
+const { totalMonetaryValue } = storeToRefs(treeInfoStore)
+
+
 
 const props = defineProps({
   isCollapsed: Boolean,
 })
-
-const tree = ref(null);
-
-
-
-
-// Computed property to sort the ecological benefits by name
-const sortedEcologicalBenefits = computed(() => {
-  return tree.value.ecologicalBenefits.sort((a, b) => {
-    return a.name.localeCompare(b.name);
-  });
-});
-
-const totalMonetaryValue = computed(() => {
-  // Ensure we sum monetary values properly
-  const total = tree.value.ecologicalBenefits.reduce((sum, benefit) => {
-    const monetaryValue = parseFloat(benefit.monetary) || 0; // Ensure it's a number or default to 0
-    return sum + monetaryValue;
-  }, 0);
-
-  // Safely format the result to 2 decimal places
-  return total.toFixed(2); // toFixed returns a string for display
-});
-
-// Function to fetch tree data based on treeId
-const fetchTreeData = async (treeId) => {
-  try {
-    const response = await fetch(`http://localhost:3001/api/trees/${treeId}`);
-    const treeData = await response.json();
-
-    // Sort activities by date (most recent first), format the date to 'yyyy-mm-dd', and select the top 10
-    const sortedInspections = treeData.inspections
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 10)
-      .map(activity => ({
-        ...activity,
-        date: new Date(activity.date).toISOString().slice(0, 10) // Format to 'yyyy-mm-dd'
-    }));
-
-    treeData.inspections = sortedInspections;
-
-    tree.value = treeData; // Set the fetched data to the tree ref
-  } catch (error) {
-    console.error('Error fetching tree data:', error);
-  }
-};
 
 //Function to load the record page of the tree
 const goToEditRecord = () => {
@@ -148,17 +111,18 @@ const goToEditRecord = () => {
 
 
 // onMounted: When the component is mounted, check if tree data is passed
-onMounted(() => {
+onMounted(async () => {
   const treeId = route.params.treeId;
   if (treeId) {
-    fetchTreeData(treeId); // Fetch tree data from API
+    await treeInfoStore.fetchTreeData(treeId);
   }
 });
 
 // Watch for changes to the route params (in case of navigation)
-watch(() => route.params.treeId, (newTreeId) => {
+watch(() => route.params.treeId, async (newTreeId) => {
   if (newTreeId) {
-    fetchTreeData(newTreeId); // Refetch the tree data when the treeId changes
+    // Refetch the tree data when the treeId changes
+    await treeInfoStore.fetchTreeData(newTreeId)
   }
 });
 

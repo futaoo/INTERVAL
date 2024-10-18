@@ -418,6 +418,7 @@ app.get('/api/trees/:id', async (req, res) => {
         t.actual_trunk, 
         t.actual_spread, 
         t.condition, 
+        ST_AsText(t.geom) AS geom_wkt,
         s.common_name AS species_common_name, 
         s.scientific_name AS species_scientific_name, 
         s.species_code AS species_id
@@ -458,6 +459,7 @@ app.get('/api/trees/:id', async (req, res) => {
       trunkDiameter: treeResult.rows[0].actual_trunk,
       canopySpread: treeResult.rows[0].actual_spread,
       condition: treeResult.rows[0].condition,
+      geomWKT: treeResult.rows[0].geom_wkt,
       species: {
         speciesCommonName: treeResult.rows[0].species_common_name,
         speciesScientificName: treeResult.rows[0].species_scientific_name,

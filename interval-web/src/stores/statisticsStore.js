@@ -87,3 +87,61 @@ export const useTreeStore = defineStore('tree', {
     }
   }
 });
+
+
+export const useTreeInfoStore = defineStore ('treeInfo', {
+  state: () => ({
+    tree: null,
+    totalMonetaryValue: 0,
+  }),
+  actions: {
+    setTree(tree){
+      this.tree = tree;
+    },
+    getTree(){
+      return this.tree;
+    },
+    setTotalMonetaryValue (value){
+      this.totalMonetaryValue = value
+    },
+    getTotalMonetaryValue (){
+      return this.totalMonetaryValue;
+    },
+    async fetchTreeData (treeId) {
+      try {
+        const response = await fetch(`http://localhost:3001/api/trees/${treeId}`);
+        const treeData = await response.json();
+
+        // Computed property to sort the ecological benefits by name
+        const sortedEcologicalBenefits = treeData.ecologicalBenefits.sort((a, b) => {
+            return a.name.localeCompare(b.name);
+          });
+
+        treeData.ecologicalBenefits = sortedEcologicalBenefits;
+
+        const totalMonetaryValue = treeData.ecologicalBenefits.reduce((sum, benefit) => {
+            const monetaryValue = parseFloat(benefit.monetary) || 0; // Ensure it's a number or default to 0
+            return sum + monetaryValue;
+          }, 0).toFixed(2);
+
+        this.setTotalMonetaryValue(totalMonetaryValue);
+    
+        // Sort activities by date (most recent first), format the date to 'yyyy-mm-dd', and select the top 10
+        const sortedInspections = treeData.inspections
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 10)
+          .map(activity => ({
+            ...activity,
+            date: new Date(activity.date).toISOString().slice(0, 10) // Format to 'yyyy-mm-dd'
+        }));
+    
+        treeData.inspections = sortedInspections;
+    
+        this.setTree(treeData); // Set the fetched data to the tree ref
+      } catch (error) {
+        console.error('Error fetching tree data:', error);
+      }
+    }
+  }
+
+});
