@@ -140,12 +140,15 @@ app.get('/api/electoral/:id?', async (req, res) => {
 
     // Query to get the list of activities/issues for trees within the electoral division
     const activitiesResult = await pool.query(`
-      SELECT 
+      SELECT
+        t.tree_id, 
+        s.common_name AS tree_name,
         r.record_type, 
         r.record_description, 
         r.record_date
       FROM tree_data.tree_record r
       JOIN tree_data.tree t ON r.tree_id = t.tree_id
+      LEFT JOIN tree_data.species s ON t.species_id = s.species_id 
       WHERE ST_Within(t.geom, $1)
     `, [electoralGeom]);
 
@@ -173,6 +176,8 @@ app.get('/api/electoral/:id?', async (req, res) => {
         percentage: species.percentage
       })),
       activities: activitiesResult.rows.map((activity) => ({
+        treeId: activity.tree_id,
+        treeName: activity.tree_name,
         type: activity.record_type,
         description: activity.record_description,
         date: activity.record_date,
@@ -352,12 +357,14 @@ app.post('/api/trees', async (req, res) => {
     // Query to get the list of activities/issues for trees within the electoral division
     const activitiesResult = await pool.query(`
       SELECT 
+        t.tree_id, 
+        s.common_name AS tree_name,
         r.record_type, 
         r.record_description, 
         r.record_date
       FROM tree_data.tree_record r
       JOIN tree_data.tree t ON r.tree_id = t.tree_id
-      JOIN tree_data.species s ON t.species_id = s.species_id
+      LEFT JOIN tree_data.species s ON t.species_id = s.species_id
       WHERE ST_Within(t.geom, $1) ${tFilterCondition} ${sFilterCondition}
     `, [electoralGeom]);
 
@@ -386,6 +393,8 @@ app.post('/api/trees', async (req, res) => {
         percentage: species.percentage
       })),
       activities: activitiesResult.rows.map((activity) => ({
+        treeId: activity.tree_id,
+        treeName: activity.tree_name,
         type: activity.record_type,
         description: activity.record_description,
         date: activity.record_date,
@@ -445,6 +454,7 @@ app.get('/api/trees/:id', async (req, res) => {
     // Fetch records (activities/issues) for the tree
     const recordResult = await pool.query(`
       SELECT 
+        record_id,
         record_type, 
         record_description, 
         record_date 
@@ -472,6 +482,7 @@ app.get('/api/trees/:id', async (req, res) => {
         monetary: benefit.monetary_value
       })),
       inspections: recordResult.rows.map((record) => ({
+        recordId: record.record_id,
         date: record.record_date,
         type: record.record_type,
         description: record.record_description

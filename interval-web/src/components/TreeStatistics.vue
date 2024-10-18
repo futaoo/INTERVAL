@@ -69,6 +69,7 @@
               <th>Date</th>
               <th>Activity Type</th>
               <th>Description</th>
+              <th>Tree</th>
             </tr>
           </thead>
           <tbody>
@@ -76,6 +77,11 @@
               <td>{{ record.date }}</td>
               <td>{{ record.type }}</td>
               <td>{{ record.description }}</td>
+              <td>
+                <router-link :to="{ name: 'TreeInfo', params: { treeId: record.treeId } }" :class="{ 'tree-link': record.treeName, 'unknown-tree': !record.treeName }" >
+                  {{ record.treeName || 'Unknown Species' }} 
+                </router-link>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -246,5 +252,21 @@ th, td {
 .species-image {
   max-width: 100px;
   height: auto;
+}
+
+.tree-link {
+  color: green;
+  text-decoration: underline;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.tree-link:hover {
+  color: darkgreen;
+}
+
+.unknown-tree {
+  color: grey;
+  font-style: italic;
 }
 </style>
