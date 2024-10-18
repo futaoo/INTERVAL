@@ -39,10 +39,15 @@ const routes = [
         component: FilterStatistics,
       },
       {
-        path: ':treeId/records',
-        name: 'TreeRecord',
+        path: ':treeId/records/new',
+        name: 'NewTreeRecord',
         component: TreeRecord,
-      }        
+      },
+      {
+        path: ':treeId/records/:recordId/edit',
+        name: 'EditTreeRecord',
+        component: TreeRecord,
+      }  
     ]
   }
 ];

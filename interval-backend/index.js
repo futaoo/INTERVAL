@@ -576,6 +576,36 @@ app.post('/api/trees/:treeId/records', async (req, res) => {
   }
 });
 
+// PUT route to edit an existing tree record
+app.put('/api/trees/:treeId/records/:recordId', async (req, res) => {
+  const { treeId, recordId } = req.params;
+  const { recordType, recordDescription, recordDate } = req.body; // Fields to update
+
+  try {
+    // Update the record in the database
+    const updatedRecord = await pool.query(
+      `UPDATE tree_data.tree_record 
+       SET record_type = $1, 
+           record_description = $2, 
+           record_date = $3
+       WHERE tree_id = $4 AND record_id = $5
+       RETURNING *`,
+      [recordType, recordDescription, recordDate, treeId, recordId]
+    );
+
+    if (updatedRecord.rows.length === 0) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    res.status(200).json({ message: 'Record updated successfully', record: updatedRecord.rows[0] });
+
+  } catch (error) {
+    console.error('Error updating tree record:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 // Listen on PORT
 const port = process.env.PORT || 3001;
 app.listen(port, () => {

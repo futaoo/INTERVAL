@@ -62,6 +62,7 @@
               <th>Date</th>
               <th>Type</th>
               <th>Description</th>
+              <th>Operations</th>
             </tr>
           </thead>
           <tbody>
@@ -69,6 +70,9 @@
               <td>{{ record.date }}</td>
               <td>{{ record.type }}</td>
               <td>{{ record.description }}</td>
+              <td>
+                <button @click="editRecord(record)" class="edit-link">Edit</button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -77,7 +81,7 @@
 
      <!-- Submit Record Button -->
     <div class="info-section submit-record-section">
-      <button class="submit-btn" @click="goToEditRecord">Submit Record</button>
+      <button class="submit-btn" @click="goToNewRecord">Submit Record</button>
     </div>
 
   </div>
@@ -85,6 +89,7 @@
 
 <script setup>
 import { useTreeInfoStore } from '@/stores/statisticsStore';
+import { useTreeRecordStore } from '@/stores/treeRecordStore';
 import { storeToRefs } from 'pinia';
 import { onMounted, watch} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -93,7 +98,9 @@ import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute(); // Get the current route
 const router = useRouter();
+
 const treeInfoStore = useTreeInfoStore();
+const treeRecordStore = useTreeRecordStore();
 
 const { tree } = storeToRefs(treeInfoStore)
 const { totalMonetaryValue } = storeToRefs(treeInfoStore)
@@ -105,8 +112,13 @@ const props = defineProps({
 })
 
 //Function to load the record page of the tree
-const goToEditRecord = () => {
-  router.push({ name: 'TreeRecord', params: { treeId: route.params.treeId } });
+const goToNewRecord = () => {
+  router.push({ name: 'NewTreeRecord', params: { treeId: route.params.treeId } });
+};
+
+const editRecord = (record) => {
+  treeRecordStore.setRecord(record);
+  router.push({ name: 'EditTreeRecord', params: { treeId: record.treeId, recordId: record.recordId } });
 };
 
 
@@ -205,5 +217,16 @@ th, td {
 .submit-btn:hover {
   background-color: #45a049;
 }
+
+.edit-link {
+  color: blue;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.edit-link:hover {
+  color: darkblue;
+}
+
 
 </style>

@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, inject, computed, reactive, onBeforeMount} from 'vue';
+import { ref, onMounted,} from 'vue';
 import { useRoute } from 'vue-router';
 import PieChart from './PieChart.vue';
 import { useTreeStore } from '@/stores/statisticsStore';
