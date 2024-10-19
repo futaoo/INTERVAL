@@ -1,6 +1,5 @@
-import LayerSwitcher from 'ol-layerswitcher';
 import {Zoom} from 'ol/control';
-
+import LayerSwitcher from 'ol-layerswitcher';
 
 
 

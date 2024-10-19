@@ -30,6 +30,7 @@
     "ol": "^10.2.1",
     "ol-layerswitcher": "^4.1.2",
     "pinia": "^2.2.2",
+    "pinia-plugin-persistedstate": "^4.1.1",
     "vue-chartjs": "^5.3.1",
     "vue-cli-plugin-tailwind": "~3.0.0"
   }

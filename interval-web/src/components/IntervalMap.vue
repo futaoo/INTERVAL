@@ -20,28 +20,25 @@ import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 import { electoralStyle, initializeStyleCache, treeStyle, selectedTreeStyle, filteredTreeStyle} from '@/utils/MapLayerStyles';
 import { createZoomControl, layerSwitcher } from '@/utils/MapControllers';
 import { baseMaps} from '@/utils/MapLayers';
-import WKT from 'ol/format/WKT';
 
 
 
 const router = useRouter();
-const map = shallowRef(null); // A ref for the OpenLayers map
 const treeStore = useTreeStore();
 const mapStore = useMapStore();
-const treeInfoStore =  useTreeInfoStore()
 
 const{inclTreeIds} = storeToRefs(treeStore);
-const {tree} = storeToRefs(treeInfoStore);
 
-let clickedTree = false;
 
 const styleCache = {};
 
+const map = shallowRef(null); // A ref for the OpenLayers map
+
 
 onMounted(async() => {
-
   await initializeStyleCache(styleCache);
   console.log('Map and style cache initialization complete.');
+  mapStore.setStyleCahe(styleCache);
 
   // Create OpenLayers map
   map.value = new ol.Map({
@@ -100,32 +97,6 @@ onMounted(async() => {
     });
   });
 
-  // zoom into a tree from a direct access from url
-  watch(tree, (newTree) => {
-    if(newTree && !clickedTree){
-      console.log('find a new tree from url', newTree.treeId)
-      // Refresh the style of the tree layer when `excludedTreeIds` changes
-      treeLayer.setStyle((feature) => {
-        return selectedTreeStyle(feature, newTree.treeId, styleCache)
-      });
-
-      const format = new WKT();
-      const geometry = format.readGeometry(newTree.geomWKT, {
-        dataProjection: 'EPSG:4326', // Adjust data is in a different projection
-        featureProjection: map.value.getView().getProjection() // Map's current projection
-      });
-
-      // Get the point coordinates from the geometry
-      const coordinates = geometry.getCoordinates();
-      // Zoom to the point with smooth animation
-      map.value.getView().animate({
-        center: coordinates,
-        zoom: 18,  // Set the desired zoom level
-        duration: 1000 // Smooth animation (500ms)
-      }); 
-    }
-  }, { immediate: true });
-  
 
   // Mouse move event listener for changing cursor style
   map.value.on('pointermove', function (evt) {
@@ -142,7 +113,6 @@ onMounted(async() => {
     }
   });
 
-  let selectedTreeId = null;  // Store the currently selected feature
 
   // Add a click event listener specifically for the electoral layer
   map.value.on('singleclick', function (evt) {
@@ -167,23 +137,6 @@ onMounted(async() => {
         router.push({ name: 'ElectoralStatistics', params: { id: electoralId } });
       }
       if(treeId){
-
-        clickedTree=true;
-
-        // If a tree was clicked, store the treeId
-        selectedTreeId = treeId;
-
-        // Use the layer style function to handle style changes
-        treeLayer.setStyle((feature) => {
-          return selectedTreeStyle(feature, selectedTreeId, styleCache);
-        });
-
-        // Zoom to the selected tree with smooth animation
-        map.value.getView().animate({
-          center: evt.coordinate,
-          zoom: 18,
-          duration: 500  // Smooth animation (500ms)
-        });
         // Navigate to the TreeInfo route
         router.push({ name: 'TreeInfo', params: { treeId: treeId } });
       }
@@ -191,12 +144,14 @@ onMounted(async() => {
   });
 
   mapStore.setMapInstance(map);
+  mapStore.setMapInitializedTrue();
+  console.log("map initialized completed:", mapStore.isInitialized);
 
 });
-
 </script>
 
 <style>
+
 .map-container {
   width: 100%;
   height: 100%;
@@ -209,10 +164,12 @@ onMounted(async() => {
 
 .layer-switcher {
   position: absolute;
-  top: auto;
-  right: 10px;
+  top: auto !important;
+  /* width: 38px;
+  height: 38px; */
+  /* right: 10px; */
   bottom: 100px;
-  text-align: left;
+  /* text-align: left; */
 }
 
 </style>

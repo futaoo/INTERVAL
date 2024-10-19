@@ -301,7 +301,6 @@ const mapOwnershipToBoolean = (ownership) => {
 
 const handleDrawShape = () => {
   const map = mapStore.getMapInstance();  // Access the map instance from the store
-
   if (!map) {
     console.error('Map instance not available');
     return;

@@ -5,7 +5,8 @@ export const useMapStore = defineStore('mapStore', {
   state: () => ({
     mapInstance: null,
     styleCache: null,
-    selectedTreeId: null,
+    isInitialized: false,
+
   }),
   actions: {
     setMapInstance(map) {
@@ -20,11 +21,9 @@ export const useMapStore = defineStore('mapStore', {
     getStyleCache(){
       return this.styleCache;
     },
-    setSelectedTreeId(treeId){
-      this.selectedTreeId = treeId;
-    },
-    getSelectedTreeId(){
-      return this.selectedTreeId
+    setMapInitializedTrue(){
+      this.isInitialized = true;
     }
   },
 });
+
