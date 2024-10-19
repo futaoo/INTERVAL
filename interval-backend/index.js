@@ -605,6 +605,31 @@ app.put('/api/trees/:treeId/records/:recordId', async (req, res) => {
   }
 });
 
+// DELETE route to delete an existing tree record
+app.delete('/api/trees/:treeId/records/:recordId', async (req, res) => {
+  const { treeId, recordId } = req.params;
+
+  try {
+    // Delete the record from the database
+    const deletedRecord = await pool.query(
+      `DELETE FROM tree_data.tree_record 
+       WHERE tree_id = $1 AND record_id = $2
+       RETURNING *`,
+      [treeId, recordId]
+    );
+
+    if (deletedRecord.rows.length === 0) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    res.status(200).json({ message: 'Record deleted successfully', record: deletedRecord.rows[0] });
+
+  } catch (error) {
+    console.error('Error deleting tree record:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 // Listen on PORT
 const port = process.env.PORT || 3001;

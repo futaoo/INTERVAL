@@ -72,6 +72,8 @@
               <td>{{ record.description }}</td>
               <td>
                 <button @click="editRecord(record)" class="edit-link">Edit</button>
+                /
+                <button @click="deleteRecord(record)" class="edit-link">Delete</button>
               </td>
             </tr>
           </tbody>
@@ -89,13 +91,12 @@
 
 <script setup>
 import { useMapStore } from '@/stores/mapStore';
-import { useRouteParamsStore } from '@/stores/routeParamsStore';
 import { useTreeInfoStore } from '@/stores/statisticsStore';
 import { useTreeRecordStore } from '@/stores/treeRecordStore';
 import { selectedTreeStyle } from '@/utils/MapLayerStyles';
 import WKT from 'ol/format/WKT';
 import { storeToRefs } from 'pinia';
-import { onMounted, onUpdated, ref, watch, watchEffect} from 'vue';
+import { onMounted, watch, watchEffect} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 
@@ -106,7 +107,6 @@ const router = useRouter();
 
 const treeInfoStore = useTreeInfoStore();
 const treeRecordStore = useTreeRecordStore();
-const routeParamsStore = useRouteParamsStore();
 const mapStore = useMapStore()
 
 const { tree } = storeToRefs(treeInfoStore)
@@ -126,7 +126,31 @@ const goToNewRecord = () => {
 
 const editRecord = (record) => {
   treeRecordStore.setRecord(record);
-  router.push({ name: 'EditTreeRecord', params: { treeId: record.treeId, recordId: record.recordId } });
+  router.push({ name: 'EditTreeRecord', params: { treeId: route.params.treeId, recordId: record.recordId } });
+};
+
+
+const deleteRecord = async (record) => {
+  try {
+    const confirmDelete = confirm(`Are you sure you want to delete the record dated ${record.date}?`);
+    if (!confirmDelete) return;
+
+    // Assuming you have an API that accepts DELETE requests
+    const response = await fetch(`http://localhost:3001/api/trees/${route.params.treeId}/records/${record.recordId}`, {
+      method: 'DELETE',
+    });
+
+    if (response.ok) {
+      // Remove the record from the list on successful deletion
+      tree.value.inspections = tree.value.inspections.filter(r => r !== record);
+      alert('Record deleted successfully');
+    } else {
+      alert('Failed to delete the record');
+    }
+  } catch (error) {
+    console.error('Error deleting the record:', error);
+    alert('An error occurred while deleting the record');
+  }
 };
 
 
@@ -194,12 +218,7 @@ watchEffect(()=>{
       }
     }
   }
-})
-
-
-
-
-
+});
 
 </script>
 
