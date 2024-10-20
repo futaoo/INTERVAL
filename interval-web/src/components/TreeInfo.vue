@@ -135,7 +135,7 @@ const deleteRecord = async (record) => {
     const confirmDelete = confirm(`Are you sure you want to delete the record dated ${record.date}?`);
     if (!confirmDelete) return;
 
-    // Assuming you have an API that accepts DELETE requests
+    // API that accepts DELETE requests
     const response = await fetch(`http://localhost:3001/api/trees/${route.params.treeId}/records/${record.recordId}`, {
       method: 'DELETE',
     });
