@@ -96,7 +96,7 @@ import { useTreeRecordStore } from '@/stores/treeRecordStore';
 import { selectedTreeStyle } from '@/utils/MapLayerStyles';
 import WKT from 'ol/format/WKT';
 import { storeToRefs } from 'pinia';
-import { onMounted, watch, watchEffect} from 'vue';
+import { inject, onMounted, ref, shallowRef, watch, watchEffect} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 
@@ -111,6 +111,8 @@ const mapStore = useMapStore()
 
 const { tree } = storeToRefs(treeInfoStore)
 const { totalMonetaryValue } = storeToRefs(treeInfoStore)
+
+const bus = inject('$bus')
 
 
 
@@ -167,27 +169,28 @@ onMounted(async () => {
 
 
 
-function getLayerByTitle(map, title) {
-  return map.getLayers().getArray().find(layer => layer.get('title') === title);
-}
+// function getLayerByTitle(map, title) {
+//   return map.getLayers().getArray().find(layer => layer.get('title') === title);
+// }
 
-function zoomInGeomWKT (map, geomWKT) {
-    const format = new WKT();
-    const geometry = format.readGeometry(geomWKT, {
-      dataProjection: 'EPSG:4326', // Adjust data is in a different projection
-      featureProjection: map.getView().getProjection() // Map's current projection
-    });
+// function zoomInGeomWKT (map, geomWKT) {
+//   console.log("zoom in", geomWKT);
+//   const format = new WKT();
+//   const geometry = format.readGeometry(geomWKT, {
+//     dataProjection: 'EPSG:4326', // Adjust data is in a different projection
+//     featureProjection: map.getView().getProjection() // Map's current projection
+//   });
 
-    // Get the point coordinates from the geometry
-    const coordinates = geometry.getCoordinates();
+//   // Get the point coordinates from the geometry
+//   const coordinates = geometry.getCoordinates();
 
-    // Zoom to the point with smooth animation
-    map.getView().animate({
-      center: coordinates,
-      zoom: 18,  // Set the desired zoom level
-      duration: 1000 // Smooth animation (500ms)
-    }); 
-}
+//   // Zoom to the point with smooth animation
+//   map.getView().animate({
+//     center: coordinates,
+//     zoom: 18,  // Set the desired zoom level
+//     duration: 1000 // Smooth animation (500ms)
+//   }); 
+// }
 
 // Watch for changes to the route params (in case of navigation)
 watch(() => route.params.treeId, async (newTreeId) => {
@@ -198,27 +201,39 @@ watch(() => route.params.treeId, async (newTreeId) => {
   }
 });
 
-
-watchEffect(()=>{
-  if (mapStore.isInitialized) {
-    console.log("effects watched");
-    const treeId = route.params.treeId;
-
-    if (treeId) {
-      const treeIdint = parseInt(treeId, 10);
-
-      // Assume getLayerByTitle and zoomInGeomWKT are utility functions
-      const map = mapStore.mapInstance;
-      const treeLayer = getLayerByTitle(map, 'Trees');
-      treeLayer.setStyle((feature) => selectedTreeStyle(feature, treeIdint, mapStore.styleCache));
-
-      // Zoom in to the specific tree's geometry
-      if (tree.value && tree.value.geomWKT) {
-        zoomInGeomWKT(map, tree.value.geomWKT);
-      }
+watch([()=>mapStore.isInitialized, tree], ()=>{
+    console.log('map watching')
+    if (mapStore.isInitialized && tree.value && tree.value.geomWKT){
+      bus.$emit('zoomInTree', {treeId: tree.value.treeId,  geomWKT: tree.value.geomWKT})
     }
-  }
-});
+  })
+
+
+
+
+
+
+// watchEffect(()=>{
+//   if (mapStore.isInitialized) {
+//     console.log("effects watched");
+//     const treeId = route.params.treeId;
+
+//     if (treeId) {
+//       console.log("tree", treeId);
+//       const treeIdint = parseInt(treeId, 10);
+
+//       const map = mapStore.getMapInstance()
+
+//       const treeLayer = getLayerByTitle(map, 'Trees');
+//       treeLayer.setStyle((feature) => selectedTreeStyle(feature, treeIdint, mapStore.styleCache));
+
+//       // Zoom in to the specific tree's geometry
+//       if (tree.value && tree.value.geomWKT) {
+//         zoomInGeomWKT(map, tree.value.geomWKT);
+//       }
+//     }
+//   }
+// });
 
 </script>
 

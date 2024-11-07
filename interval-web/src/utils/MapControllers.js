@@ -1,5 +1,6 @@
 import {Zoom} from 'ol/control';
 import LayerSwitcher from 'ol-layerswitcher';
+import { MouseWheelZoom } from 'ol/interaction';
 
 
 
@@ -28,3 +29,19 @@ export const createZoomControl = () => {
 
   return zoomControl;
 };
+
+
+// Customize the mouse wheel zoom interaction
+export const createZoomSpeedControl = ()=>{
+
+  const mouseWheelZoom = new MouseWheelZoom({
+    duration: 250, // Duration of the zoom animation in milliseconds
+    constrainResolution: true, // Set to true if you want to zoom to the next resolution
+  });
+
+  mouseWheelZoom.zoomFactor = 2.0;
+
+  return mouseWheelZoom;
+
+}
+

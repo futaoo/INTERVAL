@@ -13,19 +13,22 @@ import { fromLonLat } from 'ol/proj';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import MVT from 'ol/format/MVT';
 import VectorTileSource from 'ol/source/VectorTile';
-import { useTreeInfoStore, useTreeStore } from '@/stores/statisticsStore';
+import { useTreeStore } from '@/stores/statisticsStore';
 import { storeToRefs } from 'pinia';
 import { useMapStore } from '@/stores/mapStore';
 import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 import { electoralStyle, initializeStyleCache, treeStyle, selectedTreeStyle, filteredTreeStyle} from '@/utils/MapLayerStyles';
-import { createZoomControl, layerSwitcher } from '@/utils/MapControllers';
+import { createZoomControl, layerSwitcher} from '@/utils/MapControllers';
 import { baseMaps} from '@/utils/MapLayers';
+import WKT from 'ol/format/WKT';
+
 
 
 
 const router = useRouter();
 const treeStore = useTreeStore();
 const mapStore = useMapStore();
+const bus = inject('$bus');
 
 const{inclTreeIds} = storeToRefs(treeStore);
 
@@ -48,7 +51,6 @@ onMounted(async() => {
       center: fromLonLat([-6.26031, 53.349805]), // Center at Dublin
       zoom: 11,
     }),
-    renderer:'webgl',
     controls: []
   });
 
@@ -66,6 +68,7 @@ onMounted(async() => {
   map.value.addLayer(electoralLayer);
 
 
+
   // Create and add a vector tile layer for trees
   const treeLayer = new VectorTileLayer({
     source: new VectorTileSource({
@@ -76,7 +79,7 @@ onMounted(async() => {
       return treeStyle(feature, styleCache);
     },
     minZoom: 16.99,
-    title: 'Trees'
+    title: 'Trees',
   });
 
 
@@ -130,8 +133,8 @@ onMounted(async() => {
         // If electoralId is present, zoom in to the clicked location at zoom level 16
         map.value.getView().animate({
           center: evt.coordinate,
-          zoom: 17,
-          duration: 500  // Smooth animation (500ms)
+          zoom: 18,
+          duration: 200  // Smooth animation (500ms)
         });
 
         router.push({ name: 'ElectoralStatistics', params: { id: electoralId } });
@@ -143,11 +146,38 @@ onMounted(async() => {
     }
   });
 
+  bus.$on('zoomInTree', (data)=> {
+    zoomInGeomWKT(map.value, data.geomWKT);
+    treeLayer.setStyle((feature) => selectedTreeStyle(feature, data.treeId, mapStore.styleCache));
+
+  });
+
   mapStore.setMapInstance(map);
   mapStore.setMapInitializedTrue();
   console.log("map initialized completed:", mapStore.isInitialized);
 
 });
+
+
+function zoomInGeomWKT (map, geomWKT) {
+  console.log("zoom in", geomWKT);
+  const format = new WKT();
+  const geometry = format.readGeometry(geomWKT, {
+    dataProjection: 'EPSG:4326', // Adjust data is in a different projection
+    featureProjection: map.getView().getProjection() // Map's current projection
+  });
+
+  // Get the point coordinates from the geometry
+  const coordinates = geometry.getCoordinates();
+
+  // Zoom to the point with smooth animation
+  map.getView().animate({
+    center: coordinates,
+    zoom: 18,  // Set the desired zoom level
+    duration: 1000 // Smooth animation (500ms)
+  }); 
+  console.log("finished zoom in")
+}
 </script>
 
 <style>
