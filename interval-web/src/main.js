@@ -17,7 +17,7 @@ import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 
 const app = createApp(App);
 const pinia = createPinia()
-pinia.use(piniaPluginPersistedstate);
+// pinia.use(piniaPluginPersistedstate);
 
 // Provide the speciesColors globally
 app.provide('speciesColors', speciesColors);

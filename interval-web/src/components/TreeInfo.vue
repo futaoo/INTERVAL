@@ -169,29 +169,6 @@ onMounted(async () => {
 
 
 
-// function getLayerByTitle(map, title) {
-//   return map.getLayers().getArray().find(layer => layer.get('title') === title);
-// }
-
-// function zoomInGeomWKT (map, geomWKT) {
-//   console.log("zoom in", geomWKT);
-//   const format = new WKT();
-//   const geometry = format.readGeometry(geomWKT, {
-//     dataProjection: 'EPSG:4326', // Adjust data is in a different projection
-//     featureProjection: map.getView().getProjection() // Map's current projection
-//   });
-
-//   // Get the point coordinates from the geometry
-//   const coordinates = geometry.getCoordinates();
-
-//   // Zoom to the point with smooth animation
-//   map.getView().animate({
-//     center: coordinates,
-//     zoom: 18,  // Set the desired zoom level
-//     duration: 1000 // Smooth animation (500ms)
-//   }); 
-// }
-
 // Watch for changes to the route params (in case of navigation)
 watch(() => route.params.treeId, async (newTreeId) => {
   if (newTreeId) {

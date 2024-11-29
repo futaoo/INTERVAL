@@ -159,6 +159,7 @@ onMounted(async() => {
 });
 
 
+
 function zoomInGeomWKT (map, geomWKT) {
   console.log("zoom in", geomWKT);
   const format = new WKT();
