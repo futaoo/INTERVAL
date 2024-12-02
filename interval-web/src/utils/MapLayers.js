@@ -12,7 +12,9 @@ const osm = new LayerTile({
   title: 'Street',
   type: 'base',
   visible: true,
-  source: new OSM()
+  source: new OSM({
+    attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  })
 });
 
 
@@ -22,7 +24,9 @@ const carto = new LayerTile({
   visible: true,
   source: new XYZ({
     url: 'https://{a-d}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-    attributions: '&copy; <a href="https://www.openstreetmap.org/copyright"></a> contributors',
+    attributions: [
+      '&copy; <a href="https://www.openstreetmap.org/copyright"></a> contributors',
+      '&copy; <a href="https://carto.com/">CARTO</a>'],
   }),
 });
 

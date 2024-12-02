@@ -21,6 +21,7 @@ import { electoralStyle, initializeStyleCache, treeStyle, selectedTreeStyle, fil
 import { createZoomControl, layerSwitcher} from '@/utils/MapControllers';
 import { baseMaps} from '@/utils/MapLayers';
 import WKT from 'ol/format/WKT';
+import {Attribution} from 'ol/control';
 
 
 
@@ -51,7 +52,10 @@ onMounted(async() => {
       center: fromLonLat([-6.26031, 53.349805]), // Center at Dublin
       zoom: 11,
     }),
-    controls: []
+    controls: [
+      new Attribution({
+    }),
+  ],
   });
 
   // Create and add a vector tile layer for electoral boundaries
